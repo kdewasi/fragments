@@ -1,0 +1,41 @@
+{
+  "name": "fragments",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Fragments back-end API",
+  "author": "Kishan Dewasi",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kdewasi/fragments.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint \"./src/**/*.js\"",
+    "start": "node src/index.js",
+    "dev": "cross-env LOG_LEVEL=debug nodemon ./src/index.js --watch src",
+    "debug": "cross-env LOG_LEVEL=debug nodemon --inspect=0.0.0.0:9229 ./src/index.js --watch src"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.26.0",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.26.0",
+    "globals": "^16.1.0",
+    "nodemon": "^3.1.10",
+    "prettier": "3.5.3"
+  },
+  "dependencies": {
+    "aws-jwt-verify": "^5.1.0",
+    "compression": "^1.8.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "passport": "^0.7.0",
+    "passport-http-bearer": "^1.0.1",
+    "pino": "^9.6.0",
+    "pino-http": "^10.4.0",
+    "pino-pretty": "^13.0.0",
+    "stoppable": "^1.1.0"
+  }
+}
