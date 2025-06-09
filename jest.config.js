@@ -7,7 +7,6 @@ console.log(`Using LOG_LEVEL=${process.env.LOG_LEVEL}. Use 'debug' in env.jest f
 module.exports = {
   verbose: true,
   testTimeout: 5000,
-  roots: ['<rootDir>/tests'],               // ✅ Tell Jest where to look
-  testMatch: ['**/*.test.js'],              // ✅ Look for any *.test.js inside /tests
-  testPathIgnorePatterns: ['/node_modules/', '/fragments-backend/'],
+  testMatch: ['<rootDir>/tests/**/*.test.js'], // ✅ This works across environments
+  testPathIgnorePatterns: ['/node_modules/', '/fragments-backend/']
 };
