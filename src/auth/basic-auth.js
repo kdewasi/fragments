@@ -39,7 +39,7 @@ module.exports.strategy = () => strategy;
 
 module.exports.authenticate = () =>
   (req, res, next) => {
-    passport.authenticate('http', { session: false }, (err, user, info) => {
+    passport.authenticate('http', { session: false }, (err, user) => {
       if (err) {
         console.error('❌ Passport auth error:', err);
         return res.status(500).json({ error: 'Internal Server Error' });
