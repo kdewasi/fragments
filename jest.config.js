@@ -7,7 +7,7 @@ console.log(`Using LOG_LEVEL=${process.env.LOG_LEVEL}. Use 'debug' in env.jest f
 module.exports = {
   verbose: true,
   testTimeout: 5000,
-  testMatch: ['<rootDir>/tests/unit/**/*.test.js'],  // ✅ Matches your test folder correctly
+  testMatch: ['<rootDir>/src/tests/unit/**/*.test.js'], // ✅ THIS matches your actual structure
   testPathIgnorePatterns: ['/node_modules/', '/fragments-backend/'],
   modulePathIgnorePatterns: ['<rootDir>/fragments-backend']
 };
