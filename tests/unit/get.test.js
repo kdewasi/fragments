@@ -14,7 +14,7 @@ describe('GET /v1/fragments', () => {
   test('authenticated users get a fragments array', async () => {
     const res = await request(app)
       .get('/v1/fragments')
-      .auth('user1@email.com', 'password1');
+      .auth('kishandewasi@email.com', 'Jckzwtjh7d'); // ✅ updated credentials
 
     expect(res.statusCode).toBe(200);
     expect(res.body.status).toBe('ok');
