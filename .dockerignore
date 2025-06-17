@@ -1,0 +1,12 @@
+node_modules/
+coverage/
+.vscode/
+.github/
+.git/
+.gitignore
+.env
+tests/
+!tests/.htpasswd
+jest*
+.prettier*
+eslint.config.mjs
