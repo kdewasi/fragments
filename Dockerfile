@@ -1,11 +1,27 @@
-# Dockerfile for fragments microservice
+# -----------------------------
+# Stage 1: Build dependencies
+# -----------------------------
+FROM node:18.13.0 AS builder
 
-# Use specific Node.js version as base image
-FROM node:18.13.0
+LABEL stage="builder"
 
-# Image metadata
-LABEL maintainer="Your Name <your@email.com>"
-LABEL description="Fragments node.js microservice"
+WORKDIR /app
+
+# Copy dependency files and install packages
+COPY package*.json ./
+RUN npm install
+
+# Copy full project (src, tests, .htpasswd, etc.)
+COPY . .
+
+# -----------------------------
+# Stage 2: Production runtime
+# -----------------------------
+FROM node:18.13.0-slim
+
+# Image metadata (optional but useful)
+LABEL maintainer="Kishan D. <your@email.com>"
+LABEL description="Fragments Node.js microservice for CCP555 Lab 6"
 
 # Set environment variables
 ENV PORT=8080
@@ -15,18 +31,11 @@ ENV NPM_CONFIG_COLOR=false
 # Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
-COPY package*.json ./
-RUN npm install
+# Copy built app and dependencies from builder
+COPY --from=builder /app /app
 
-# Copy application source code
-COPY ./src ./src
-
-# Copy .htpasswd file for Basic Auth
-COPY ./tests/.htpasswd ./tests/.htpasswd
-
-# Document the exposed port
+# Expose the service port
 EXPOSE 8080
 
-# Start the server
-CMD npm start
+# Start the application
+CMD ["npm", "start"]

@@ -10,14 +10,14 @@
     "url": "git+https://github.com/kdewasi/fragments.git"
   },
   "scripts": {
-  "test": "jest",
-  "test:watch": "jest --watch",
-  "coverage": "jest --coverage",
-  "lint": "eslint \"./src/**/*.js\" || true",
-  "start": "node src/index.js",
-  "dev": "cross-env LOG_LEVEL=debug nodemon ./src/index.js --watch src",
-  "debug": "cross-env LOG_LEVEL=debug nodemon --inspect=0.0.0.0:9229 ./src/index.js --watch src"
-},
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "coverage": "jest --coverage",
+    "lint": "eslint \"./src/**/*.js\" || true",
+    "start": "node src/index.js",
+    "dev": "cross-env LOG_LEVEL=debug nodemon ./src/index.js --watch src",
+    "debug": "cross-env LOG_LEVEL=debug nodemon --inspect=0.0.0.0:9229 ./src/index.js --watch src"
+  },
   "devDependencies": {
     "@eslint/js": "^9.26.0",
     "cross-env": "^7.0.3",
