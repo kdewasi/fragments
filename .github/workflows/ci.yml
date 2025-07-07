@@ -19,6 +19,15 @@ jobs:
       - run: npm ci
       - run: npm run lint
 
+  dockerfile-lint:
+    name: Dockerfile Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
