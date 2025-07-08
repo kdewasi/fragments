@@ -1,6 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const { Fragment } = require('../../model/fragment');
+const { version, author, githubUrl } = require('../../../package.json');
+
+// /v1/health route
+router.get('/health', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  res.status(200).json({
+    status: 'ok',
+    author,
+    githubUrl,
+    version,
+  });
+});
 
 // Middleware for raw body parsing for supported types
 const rawBody = () =>
