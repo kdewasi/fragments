@@ -1,15 +1,28 @@
-// src/server.js
-
-const stoppable = require('stoppable');
+const express = require('express');
+const passport = require('passport');
 const logger = require('./logger');
-const app = require('./app');
+const { authenticate } = require('./auth');
 
-const port = parseInt(process.env.PORT || '8080', 10);
+const routes = require('./routes');
+const app = express();
 
-const server = stoppable(
-  app.listen(port, () => {
-    logger.info(`Server started on port ${port}`);
-  })
-);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-module.exports = server;
+app.use(passport.initialize());
+app.use(authenticate());
+
+app.use((req, res, next) => {
+  logger.info(`🧪 req.user = ${JSON.stringify(req.user)}`);
+  next();
+});
+
+// ✅ Mount top-level routes (they handle /v1 inside)
+app.use(routes);
+
+app.use((err, req, res, next) => {
+  logger.error({ err }, 'Unhandled error');
+  res.status(500).json({ status: 'error', error: err.message });
+});
+
+module.exports = app;

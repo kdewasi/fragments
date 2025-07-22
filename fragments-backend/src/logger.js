@@ -1,17 +1,27 @@
 // src/logger.js
 
-// Use `info` as default log level if not specified
-const options = { level: process.env.LOG_LEVEL || 'info' };
+const pino = require('pino');
 
-// Use pretty formatting when in debug mode
-if (options.level === 'debug') {
+// Default log level is 'info', unless overridden
+const level = process.env.LOG_LEVEL || 'info';
+
+const options = {
+  level,
+};
+
+// Enable pretty output in debug mode
+if (level === 'debug') {
   options.transport = {
     target: 'pino-pretty',
     options: {
       colorize: true,
+      translateTime: 'SYS:standard',
+      ignore: 'pid,hostname',
     },
   };
 }
 
-// Create and export a logger instance
-module.exports = require('pino')(options);
+// Export the configured logger
+const logger = pino(options);
+
+module.exports = logger;

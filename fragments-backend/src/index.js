@@ -1,21 +1,23 @@
-// src/index.js
+//src/index.js
+require('dotenv').config(); // ✅ Load .env before anything else
 
-// Load environment variables from .env file
-require('dotenv').config();
-
+const app = require('./app');
 const logger = require('./logger');
 
-// Handle uncaught exceptions
+const PORT = process.env.PORT || 8080;
+
+// ✅ Start the server
+app.listen(PORT, () => {
+  logger.info(`🚀 Server started on http://localhost:${PORT}`);
+});
+
+// ✅ Global error handlers (recommended for stability)
 process.on('uncaughtException', (err, origin) => {
-  logger.fatal({ err, origin }, 'uncaughtException');
+  logger.fatal({ err, origin }, '❌ Uncaught Exception');
   throw err;
 });
 
-// Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  logger.fatal({ reason, promise }, 'unhandledRejection');
+  logger.fatal({ reason, promise }, '❌ Unhandled Rejection');
   throw reason;
 });
-
-// Start the server
-require('./server');
