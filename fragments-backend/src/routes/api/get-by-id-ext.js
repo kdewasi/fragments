@@ -5,27 +5,26 @@ const md = new MarkdownIt();
 
 module.exports = async (req, res) => {
   const { id, ext } = req.params;
-  const ownerId = req.user; // set by auth middleware
+  const ownerId = req.user;
 
   try {
     const fragment = await Fragment.byId(ownerId, id);
-    const data = await fragment.getData(); // Buffer
+    const data = await fragment.getData();
 
-    if (ext === 'html') {
-      if (fragment.type === 'text/markdown') {
-        const markdownText = data.toString();
-        const html = md.render(markdownText);
-        res.setHeader('Content-Type', 'text/html');
-        return res.status(200).send(html);
-      } else {
-        return res.status(415).json({ error: 'Only markdown can be converted to HTML' });
-      }
+    if (ext === 'html' && fragment.type === 'text/markdown') {
+      const html = md.render(data.toString());
+      res.setHeader('Content-Type', 'text/html');
+      return res.status(200).send(html);
     }
 
-    // Fallback: return raw fragment data
+    if (ext === 'html') {
+      return res.status(415).json({ error: 'Only markdown can be converted to HTML' });
+    }
+
+    // Fallback: return raw data
     res.setHeader('Content-Type', fragment.type);
     res.status(200).send(data);
-  } catch (err) {
+  } catch {
     res.status(404).json({ error: 'Fragment not found or invalid extension' });
   }
 };

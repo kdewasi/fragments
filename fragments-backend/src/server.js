@@ -20,9 +20,4 @@ app.use((req, res, next) => {
 // ✅ Mount top-level routes (they handle /v1 inside)
 app.use(routes);
 
-app.use((err, req, res, next) => {
-  logger.error({ err }, 'Unhandled error');
-  res.status(500).json({ status: 'error', error: err.message });
-});
-
 module.exports = app;

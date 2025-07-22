@@ -66,16 +66,4 @@ app.use((req, res) => {
   });
 });
 
-app.use((err, req, res, next) => {
-  const status = err.status || 500;
-  const message = err.message || 'unable to process request';
-
-  if (status >= 500) logger.error({ err }, 'Unhandled error');
-
-  res.status(status).json({
-    status: 'error',
-    error: { message, code: status },
-  });
-});
-
 module.exports = app;
