@@ -15,8 +15,9 @@ const app = express();
 console.log('✅ Import successful: authenticate and strategy loaded from auth');
 
 // ✅ Register bearer strategy
-passport.use('bearer', strategy()); // ✅ Use as object, not function
-console.log('✅ Passport bearer strategy registered');
+// ✅ Register HTTP Basic Auth strategy
+passport.use(strategy()); // ✅ No strategy name required
+console.log('✅ Passport basic strategy registered');
 
 // ✅ Middleware
 app.use(

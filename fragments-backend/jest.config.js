@@ -1,12 +1,20 @@
 const path = require('path');
-const envFile = path.join(__dirname, 'env.jest');
-require('dotenv').config({ path: envFile });
+const dotenv = require('dotenv');
+const fs = require('fs');
 
-console.log(`Using LOG_LEVEL=${process.env.LOG_LEVEL}. Use 'debug' in env.jest for more detail`);
+const envFile = path.resolve(__dirname, 'env.jest');
+if (fs.existsSync(envFile)) {
+  dotenv.config({ path: envFile, override: true });
+}
+
+console.log(
+  `✅ Loaded env: HTPASSWD_FILE=${process.env.HTPASSWD_FILE || 'undefined'} | AWS_COGNITO_POOL_ID=${process.env.AWS_COGNITO_POOL_ID || 'undefined'}`
+);
 
 module.exports = {
   verbose: true,
   testTimeout: 5000,
-  testMatch: ['<rootDir>/tests/**/*.test.js'], // ✅ Match all .test.js files in /tests
-  testPathIgnorePatterns: ['/node_modules/'],  // ✅ Only ignore node_modules
+  testMatch: ['**/tests/unit/**/*.test.js'], // ✅ Platform-independent glob
+  testPathIgnorePatterns: ['node_modules'], // ✅ Avoid absolute patterns
+  modulePathIgnorePatterns: [], // ✅ No false ignores
 };

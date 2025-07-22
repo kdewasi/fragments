@@ -2,7 +2,7 @@ const request = require('supertest');
 const app = require('../../src/app');
 
 describe('GET /v1/fragments/:id.html', () => {
-  const user = 'kishandewasi@email.com';
+  const user = 'kishandewasi606@gmail.com';
   const pass = 'Jckzwtjh7d';
 
   let fragmentId;
@@ -20,9 +20,7 @@ describe('GET /v1/fragments/:id.html', () => {
   });
 
   test('converts Markdown fragment to HTML successfully', async () => {
-    const res = await request(app)
-      .get(`/v1/fragments/${fragmentId}.html`)
-      .auth(user, pass);
+    const res = await request(app).get(`/v1/fragments/${fragmentId}.html`).auth(user, pass);
 
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toBe('text/html; charset=utf-8');

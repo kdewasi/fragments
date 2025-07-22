@@ -3,7 +3,7 @@ const app = require('../../src/app');
 const { Fragment } = require('../../src/model/fragment');
 
 describe('POST /v1/fragments', () => {
-  const user = 'kishandewasi@email.com';
+  const user = 'kishandewasi606@gmail.com';
   const pass = 'Jckzwtjh7d';
 
   test('unauthenticated requests are denied', () =>

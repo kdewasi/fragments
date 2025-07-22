@@ -1,4 +1,4 @@
-//src/routes/api/fragments/index.js
+// src/routes/api/fragments/index.js
 const express = require('express');
 const router = express.Router();
 const contentType = require('content-type');
@@ -23,12 +23,12 @@ const rawBody = () =>
 const get = require('../get');
 const post = require('./post');
 const getById = require('../get-id');
-const getByExtension = require('../get-ext');
+const getByExtension = require('../get-by-id-ext'); // ✅ fixed path
 const getInfo = require('../get-info');
 
 // ✅ Register routes (order matters)
 router.get('/:id/info', getInfo);
-router.get('/:id.:ext', getByExtension);
+router.get('/:id.:ext', getByExtension); // ✅ now properly linked
 router.get('/:id', getById);
 router.get('/', get);
 router.post('/', rawBody(), post);
