@@ -54,6 +54,9 @@ jobs:
     needs: [lint, dockerfile-lint, test]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -63,11 +66,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
-        env:
-          DOCKERHUB_REPO: kdewasi/fragments # Replace with your DockerHub username
-          SHA_TAG: sha-${{ github.sha }}
+      - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
+          context: ./fragments-backend
+          file: ./fragments-backend/Dockerfile
           push: true
-          tags: ${{ env.DOCKERHUB_REPO }}:${{ env.SHA_TAG }}, ${{ env.DOCKERHUB_REPO }}:main, ${{ env.DOCKERHUB_REPO }}:latest
+          tags: |
+            kdewasi/fragments:sha-${{ github.sha }}
+            kdewasi/fragments:main
+            kdewasi/fragments:latest
