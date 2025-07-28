@@ -1,22 +1,26 @@
 {
   "name": "fragments-ui",
   "version": "1.0.0",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "parcel index.html",
-    "lint": "eslint ./src/**/*.js"
-  },
-  "keywords": [],
-  "author": "",
+  "description": "Frontend UI for Fragments Microservice",
+  "author": "Kishan Dewasi",
   "license": "ISC",
-  "description": "",
+  "scripts": {
+    "start": "parcel index.html",
+    "dev": "parcel index.html --open",
+    "build": "parcel build index.html --dist-dir dist",
+    "lint": "eslint ./src/**/*.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
-    "oidc-client-ts": "^3.2.1",
-    "parcel": "^2.15.2"
+    "oidc-client-ts": "^3.2.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.28.0",
     "eslint": "^9.28.0",
-    "globals": "^16.2.0"
-  }
+    "parcel": "^2.15.4"
+  },
+  "browserslist": [
+    "last 2 Chrome versions",
+    "last 2 Firefox versions",
+    "last 2 Edge versions"
+  ]
 }

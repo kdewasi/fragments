@@ -22,10 +22,11 @@ console.log('✅ Passport basic strategy registered');
 // ✅ Middleware
 app.use(
   cors({
-    origin: 'http://localhost:1234',
+    origin: true, // Allow all origins for development
     methods: 'GET,POST,PUT,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Authorization',
     credentials: true,
+    optionsSuccessStatus: 200, // ✅ Prevents CORS preflight (OPTIONS) errors
   })
 );
 app.use(
@@ -33,7 +34,7 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        connectSrc: ["'self'", 'http://localhost:8080'],
+        connectSrc: ["'self'", '*'], // Allow all connections for development
       },
     },
   })

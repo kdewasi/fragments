@@ -7,16 +7,34 @@
   </head>
   <body>
     <h1>Fragments UI</h1>
+
     <section>
-      <nav>
-        <button id="login">Login</button>
-      </nav>
+      <nav><button id="login">Login</button></nav>
     </section>
+
     <section hidden id="user">
       <h2>Hello <span class="username"></span>!</h2>
     </section>
 
-    <!-- ✅ This script must be here -->
+    <h2>Create a Fragment</h2>
+    <form id="create-form">
+      <label for="type">Type:</label>
+      <select id="type">
+        <option value="text/plain">text/plain</option>
+        <option value="application/json">application/json</option>
+        <option value="text/markdown">text/markdown</option>
+      </select>
+      <br />
+      <label for="content">Content:</label><br />
+      <textarea id="content" rows="6" cols="50"></textarea><br />
+      <button type="submit">Create Fragment</button>
+    </form>
+    <div id="post-result" style="margin-top: 1rem"></div>
+
+    <h2>Your Fragments</h2>
+    <button id="load-fragments">Load My Fragments</button>
+    <ul id="fragment-list"></ul>
+
     <script type="module" src="./src/app.js"></script>
   </body>
 </html>
