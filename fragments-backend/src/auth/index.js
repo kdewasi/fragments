@@ -19,10 +19,17 @@ if (process.env.AWS_COGNITO_POOL_ID && process.env.AWS_COGNITO_CLIENT_ID) {
   module.exports = require('./cognito');
 }
 // Also allow for an .htpasswd file to be used, but not in production
-else if (process.env.HTPASSWD_FILE && process.NODE_ENV !== 'production') {
+else if (process.env.HTPASSWD_FILE && process.env.NODE_ENV !== 'production') {
   module.exports = require('./basic-auth');
 }
-// In all other cases, we need to stop now and fix our config
+// For development, default to Cognito if no env vars are set
+else if (!process.env.AWS_COGNITO_POOL_ID && !process.env.AWS_COGNITO_CLIENT_ID) {
+  // Set default Cognito values for development
+  process.env.AWS_COGNITO_POOL_ID = 'us-east-1_t6yugxIK2';
+  process.env.AWS_COGNITO_CLIENT_ID = '7dbkmbrk3lrcv3202ln86do2u0';
+  module.exports = require('./cognito');
+}
+// Fallback to basic auth if nothing else is configured
 else {
-  throw new Error('missing env vars: no authorization configuration found');
+  module.exports = require('./basic-auth');
 }

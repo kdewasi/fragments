@@ -22,6 +22,8 @@ const rawBody = () =>
 // Import route handlers
 const get = require('../get');
 const post = require('./post');
+const put = require('./put');
+const deleteHandler = require('./delete');
 const getById = require('../get-id');
 const getByExtension = require('../get-by-id-ext'); // ✅ fixed path
 const getInfo = require('../get-info');
@@ -32,5 +34,7 @@ router.get('/:id.:ext', getByExtension); // ✅ now properly linked
 router.get('/:id', getById);
 router.get('/', get);
 router.post('/', rawBody(), post);
+router.put('/:id', rawBody(), put);
+router.delete('/:id', deleteHandler);
 
 module.exports = router;

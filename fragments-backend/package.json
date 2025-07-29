@@ -1,6 +1,6 @@
 {
   "name": "fragments",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "description": "Fragments back-end API",
   "author": "Kishan Dewasi",
@@ -17,6 +17,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "coverage": "jest --coverage",
+    "test:integration": "hurl --test --glob \"tests/integration/**/*.hurl\"",
     "lint": "eslint \"./src/**/*.js\" || true"
   },
   "dependencies": {
@@ -39,6 +40,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.26.0",
+    "@orangeopensource/hurl": "^6.1.4",
     "cross-env": "^7.0.3",
     "dotenv-cli": "^8.0.0",
     "eslint": "^9.28.0",

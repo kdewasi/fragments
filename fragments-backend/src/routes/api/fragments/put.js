@@ -1,20 +1,17 @@
-// src/routes/api/fragments/post.js
+// src/routes/api/fragments/put.js
 
 const { Fragment } = require('../../../model/fragment');
+const contentType = require('content-type');
 const { createSuccessResponse, createErrorResponse } = require('../../../response');
 
 module.exports = async (req, res) => {
   try {
-    // ✅ Parse and validate Content-Type header
-    const contentTypeHeader = req.get('Content-Type');
-    if (!contentTypeHeader) {
-      return res.status(400).json(createErrorResponse(400, 'Content-Type header is required'));
-    }
+    const { id } = req.params;
 
-    if (!Fragment.isSupportedType(contentTypeHeader)) {
-      return res
-        .status(415)
-        .json(createErrorResponse(415, `Unsupported Content-Type: ${contentTypeHeader}`));
+    // ✅ Parse and validate Content-Type header
+    const { type } = contentType.parse(req);
+    if (!Fragment.isSupportedType(type)) {
+      return res.status(415).json(createErrorResponse(415, `Unsupported Content-Type: ${type}`));
     }
 
     // ✅ Ensure request body is a raw Buffer
@@ -26,8 +23,15 @@ module.exports = async (req, res) => {
     const user = req.user;
     const ownerId = typeof user === 'object' ? user.email : user;
 
-    // ✅ Create and save the fragment
-    const fragment = new Fragment({ ownerId, type: contentTypeHeader, size: req.body.length });
+    // ✅ Check if fragment exists and belongs to user
+    let fragment;
+    try {
+      fragment = await Fragment.byId(ownerId, id);
+    } catch {
+      return res.status(404).json(createErrorResponse(404, 'Fragment not found'));
+    }
+
+    // ✅ Update fragment data
     await fragment.setData(req.body);
 
     // ✅ Build Location header
@@ -35,9 +39,9 @@ module.exports = async (req, res) => {
     const location = new URL(`/v1/fragments/${fragment.id}`, host);
 
     res.setHeader('Location', location.href);
-    return res.status(201).json(createSuccessResponse({ fragment }));
+    return res.status(200).json(createSuccessResponse({ fragment }));
   } catch (err) {
-    console.error('❌ POST /fragments failed:', err);
+    console.error('❌ PUT /fragments/:id failed:', err);
     return res.status(500).json(createErrorResponse(500, 'Internal Server Error'));
   }
 };
