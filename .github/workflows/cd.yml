@@ -35,5 +35,7 @@ jobs:
           VERSION_TAG: ${{ github.ref_name }}
         uses: docker/build-push-action@v6
         with:
+          context: ./fragments-backend
+          file: ./fragments-backend/Dockerfile
           push: true
           tags: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ env.VERSION_TAG }}, ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest
