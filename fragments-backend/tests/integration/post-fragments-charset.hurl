@@ -10,7 +10,7 @@ HTTP/1.1 201
 
 [Asserts]
 jsonpath "$.status" == "ok"
-jsonpath "$.fragment.type" == "text/plain"
+jsonpath "$.fragment.type" == "text/plain; charset=utf-8"
 jsonpath "$.fragment.size" == 21
 
 [Captures]
@@ -22,6 +22,6 @@ GET {{url}}
 kishandewasi606@gmail.com:Jckzwtjh7d
 
 HTTP/1.1 200
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
 [Asserts]
 body == "Fragment with charset" 
