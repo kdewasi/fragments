@@ -4,9 +4,8 @@ const s3Client = require('./s3Client');
 const { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const logger = require('../../../logger');
 
-// Create two in-memory databases: one for fragment metadata and the other for raw data
+// Create in-memory database for fragment metadata (data is stored in S3)
 // XXX: temporary use of memory-db until we add DynamoDB
-const data = new MemoryDB();
 const metadata = new MemoryDB();
 
 // Convert a stream of data into a Buffer, by collecting

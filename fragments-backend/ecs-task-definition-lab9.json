@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "fragments",
-      "image": "fragments:latest",
+      "image": "290950875443.dkr.ecr.us-east-1.amazonaws.com/fragments:latest",
       "portMappings": [
         {
           "containerPort": 8080,

@@ -1,6 +1,6 @@
 {
   "name": "fragments",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "private": true,
   "description": "Fragments back-end API",
   "author": "Kishan Dewasi",
@@ -11,9 +11,10 @@
   },
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "cross-env LOG_LEVEL=debug nodemon ./src/index.js --watch src",
-    "debug": "cross-env LOG_LEVEL=debug nodemon --inspect=0.0.0.0:9229 ./src/index.js --watch src",
+    "start": "node start-stable.js",
+    "start:direct": "node src/index.js",
+    "dev": "cross-env LOG_LEVEL=debug nodemon ./start-stable.js --watch src",
+    "debug": "cross-env LOG_LEVEL=debug nodemon --inspect=0.0.0.0:9229 ./start-stable.js --watch src",
     "test": "jest",
     "test:watch": "jest --watch",
     "coverage": "jest --coverage",

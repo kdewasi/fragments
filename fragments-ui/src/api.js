@@ -1,6 +1,6 @@
 // ✅ FINAL VERSION: src/api.js
 
-const apiUrl = "http://13.222.31.246:8080"; // ✅ Your EC2 IP
+const apiUrl = "http://54.174.150.51:8080"; // ✅ Your EC2 IP
 
 /**
  * Fetch all fragments for the authenticated user.

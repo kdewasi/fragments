@@ -1,0 +1,58 @@
+# docker-compose.override.yml
+# This file provides stable configuration for local development
+# It overrides the main docker-compose.yml with more reliable settings
+
+services:
+  fragments:
+    # Use the stable startup script
+    command: ['node', 'start-stable.js']
+    # Add restart policy for stability
+    restart: unless-stopped
+    # Add health check
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Add environment file
+    env_file:
+      - .env
+    # Override environment variables for stability
+    environment:
+      # Force Basic Auth for development
+      - HTPASSWD_FILE=tests/.htpasswd
+      # Ensure consistent logging
+      - LOG_LEVEL=debug
+      # Use local endpoints
+      - AWS_S3_ENDPOINT_URL=http://localstack:4566
+      - AWS_DYNAMODB_ENDPOINT_URL=http://dynamodb-local:8000
+      # Use test credentials
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_SESSION_TOKEN=test
+      # Prevent Cognito from being used
+      - AWS_COGNITO_POOL_ID=
+      - AWS_COGNITO_CLIENT_ID=
+
+  localstack:
+    # Add restart policy
+    restart: unless-stopped
+    # Add health check
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:4566/_localstack/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  dynamodb-local:
+    # Add restart policy
+    restart: unless-stopped
+    # Add health check
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
