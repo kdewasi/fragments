@@ -1,42 +1,30 @@
-// ✅ FINAL VERSION: src/auth.js
-import { UserManager } from "oidc-client-ts";
+// ✅ LOCAL TESTING VERSION: Basic Auth for Lab 9
+// Temporary override for local testing with Basic Auth backend
 
-const clientId = "7dbkmbrk3lrcv3202ln86do2u0";
-const poolId = "us-east-1_t6yugxIK2";
-const redirectUri = "http://localhost:1234";
-const region = poolId.split("_")[0];
-
-const userManager = new UserManager({
-  authority: `https://cognito-idp.${region}.amazonaws.com/${poolId}`,
-  client_id: clientId,
-  redirect_uri: redirectUri,
-  response_type: "code",
-  scope: "openid email",
-});
+// Basic Auth credentials for local testing
+const TEST_USER = {
+  username: "kdewasi",
+  email: "kishandewasi606@gmail.com",
+  password: "Jckzwtjh7d",
+};
 
 function formatUser(user) {
   return {
-    username: user.profile["cognito:username"],
-    email: user.profile.email,
-    idToken: user.id_token,
-    accessToken: user.access_token,
+    username: user.username,
+    email: user.email,
     authorizationHeaders: (type = "application/json") => ({
       "Content-Type": type,
-      Authorization: `Bearer ${user.id_token}`,
+      Authorization: `Basic ${btoa(`${user.email}:${user.password}`)}`,
     }),
   };
 }
 
 export async function getUser() {
-  if (window.location.search.includes("code=")) {
-    const user = await userManager.signinCallback();
-    window.history.replaceState({}, document.title, window.location.pathname);
-    return formatUser(user);
-  }
-  const user = await userManager.getUser();
-  return user ? formatUser(user) : null;
+  // For local testing, return the test user immediately
+  return formatUser(TEST_USER);
 }
 
 export function signIn() {
-  return userManager.signinRedirect();
+  // For local testing, no redirect needed
+  return Promise.resolve();
 }

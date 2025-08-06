@@ -1,6 +1,6 @@
 // ✅ FINAL VERSION: src/api.js
 
-const apiUrl = "http://54.174.150.51:8080"; // ✅ Your EC2 IP
+const apiUrl = "http://localhost:8080"; // ✅ Local MinIO Server
 
 /**
  * Fetch all fragments for the authenticated user.

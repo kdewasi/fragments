@@ -122,6 +122,9 @@ dist
 # DynamoDB Local files
 .dynamodb/
 
+# MinIO data directory
+minio/
+
 # TernJS port file
 .tern-port
 
