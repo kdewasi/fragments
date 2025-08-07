@@ -30,7 +30,7 @@ jobs:
         with:
           dockerfile: fragments-backend/Dockerfile
 
-  test:
+  unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
@@ -49,9 +49,36 @@ jobs:
           LOG_LEVEL: silent
           HTPASSWD_FILE: tests/.htpasswd
 
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+      - name: Install node dependencies
+        working-directory: fragments-backend
+        # NOTE: we need to install dev dependencies too vs. production only for hurl
+        run: npm install
+      - name: Build Containers
+        working-directory: fragments-backend
+        run: docker compose up -d
+      - name: Setup Local AWS Resources
+        working-directory: fragments-backend
+        # NOTE: this file needs to be made executable *before* you check into git:
+        # $ chmod +x ./scripts/local-aws-setup.sh
+        run: ./scripts/local-aws-setup.sh
+      - name: Run Hurl Tests
+        working-directory: fragments-backend
+        run: npm run test:integration
+
   docker-hub:
     name: Build and Push to Docker Hub
-    needs: [lint, dockerfile-lint, test]
+    needs: [lint, dockerfile-lint, unit-tests, integration-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

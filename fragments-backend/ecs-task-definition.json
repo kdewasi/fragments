@@ -26,6 +26,10 @@
           "value": "kdewasi-fragments"
         },
         {
+          "name": "AWS_DYNAMODB_TABLE_NAME",
+          "value": "fragments"
+        },
+        {
           "name": "API_URL",
           "value": "http://localhost:8080"
         },

@@ -1,6 +1,6 @@
 {
   "name": "fragments",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "private": true,
   "description": "Fragments back-end API",
   "author": "Kishan Dewasi",
@@ -22,7 +22,9 @@
     "lint": "eslint \"./src/**/*.js\" || true"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.862.0",
     "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.862.0",
     "aws-jwt-verify": "^5.1.0",
     "compression": "^1.8.0",
     "cors": "^2.8.5",
