@@ -1,32 +1,19 @@
-# Comprehensive startup script for Fragments Backend (PowerShell)
-# This script handles all setup and prevents configuration issues
+# start-project.ps1
+# This file provides stable configuration for local development
+# It prevents configuration issues that occur after a few hours
 
 param(
     [switch]$NoDocker
 )
 
-Write-Host "🚀 Starting Fragments Backend Project..." -ForegroundColor Blue
+# Import color functions
+function Write-Status { Write-Host "🔄 $($args[0])" -ForegroundColor Cyan }
+function Write-Success { Write-Host "✅ $($args[0])" -ForegroundColor Green }
+function Write-Warning { Write-Host "⚠️  $($args[0])" -ForegroundColor Yellow }
+function Write-Error { Write-Host "❌ $($args[0])" -ForegroundColor Red }
 
-# Function to print colored output
-function Write-Status {
-    param([string]$Message)
-    Write-Host "[INFO] $Message" -ForegroundColor Blue
-}
-
-function Write-Success {
-    param([string]$Message)
-    Write-Host "[SUCCESS] $Message" -ForegroundColor Green
-}
-
-function Write-Warning {
-    param([string]$Message)
-    Write-Host "[WARNING] $Message" -ForegroundColor Yellow
-}
-
-function Write-Error {
-    param([string]$Message)
-    Write-Host "[ERROR] $Message" -ForegroundColor Red
-}
+Write-Host "🚀 Starting Fragments Backend with stable configuration..." -ForegroundColor Green
+Write-Host ""
 
 # Check if .env file exists
 if (-not (Test-Path ".env")) {
@@ -110,11 +97,11 @@ if ($NoDocker) {
     
     # Stop any existing containers
     Write-Status "Stopping existing containers..."
-    docker-compose down --remove-orphans
+    docker compose down --remove-orphans
     
     # Build and start containers
     Write-Status "Building and starting containers..."
-    docker-compose up --build -d
+    docker compose up --build -d
     
     # Wait for services to be ready
     Write-Status "Waiting for services to be ready..."
@@ -128,16 +115,28 @@ if ($NoDocker) {
         Invoke-WebRequest -Uri "http://localhost:8080" -UseBasicParsing | Out-Null
         Write-Success "Fragments service is running on http://localhost:8080"
     } catch {
-        Write-Warning "Fragments service may not be ready yet, checking logs..."
-        docker-compose logs fragments
+        Write-Warning "Fragments service is not responding yet, waiting..."
+        Start-Sleep -Seconds 10
+        
+        try {
+            Invoke-WebRequest -Uri "http://localhost:8080" -UseBasicParsing | Out-Null
+            Write-Success "Fragments service is now running on http://localhost:8080"
+        } catch {
+            Write-Error "Fragments service failed to start. Check logs with: docker compose logs fragments"
+            exit 1
+        }
     }
     
     # Check LocalStack
     try {
-        Invoke-WebRequest -Uri "http://localhost:4566/_localstack/health" -UseBasicParsing | Out-Null
-        Write-Success "LocalStack is running on http://localhost:4566"
+        $localstackHealth = Invoke-WebRequest -Uri "http://localhost:4566/_localstack/health" -UseBasicParsing
+        if ($localstackHealth.Content -match '"s3": "running"') {
+            Write-Success "LocalStack S3 is running on http://localhost:4566"
+        } else {
+            Write-Warning "LocalStack S3 is not ready yet"
+        }
     } catch {
-        Write-Warning "LocalStack may not be ready yet"
+        Write-Warning "LocalStack is not responding yet"
     }
     
     # Check DynamoDB Local
@@ -145,10 +144,21 @@ if ($NoDocker) {
         Invoke-WebRequest -Uri "http://localhost:8000" -UseBasicParsing | Out-Null
         Write-Success "DynamoDB Local is running on http://localhost:8000"
     } catch {
-        Write-Warning "DynamoDB Local may not be ready yet"
+        Write-Warning "DynamoDB Local is not responding yet"
     }
     
-    Write-Success "All services started successfully!"
-    Write-Status "You can now run tests with: npm run test:integration"
-    Write-Status "View logs with: docker-compose logs -f"
+    Write-Host ""
+    Write-Success "🎉 All services started successfully!"
+    Write-Host ""
+    Write-Host "📋 Service URLs:" -ForegroundColor Cyan
+    Write-Host "   • Fragments API: http://localhost:8080" -ForegroundColor White
+    Write-Host "   • LocalStack S3: http://localhost:4566" -ForegroundColor White
+    Write-Host "   • DynamoDB Local: http://localhost:8000" -ForegroundColor White
+    Write-Host ""
+    Write-Host "🔧 Next steps:" -ForegroundColor Cyan
+    Write-Host "   1. Run: ./scripts/local-aws-setup.sh" -ForegroundColor White
+    Write-Host "   2. Run: npm run test:integration" -ForegroundColor White
+    Write-Host ""
+    Write-Host "📊 Check status: docker ps" -ForegroundColor Cyan
+    Write-Host "📝 View logs: docker compose logs" -ForegroundColor Cyan
 } 

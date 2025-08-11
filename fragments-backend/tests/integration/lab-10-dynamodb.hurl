@@ -90,8 +90,8 @@ HTTP/1.1 200
 jsonpath "$.status" == "ok"
 jsonpath "$.fragments" isCollection
 # Verify both fragment IDs are in the list
-jsonpath "$.fragments" includes {{fragment1_id}}
-jsonpath "$.fragments" includes {{fragment2_id}}
+jsonpath "$.fragments" contains {{fragment1_id}}
+jsonpath "$.fragments" contains {{fragment2_id}}
 
 # 8. DELETE the first fragment
 DELETE {{fragment1_url}}
@@ -121,6 +121,6 @@ HTTP/1.1 200
 jsonpath "$.status" == "ok"
 jsonpath "$.fragments" isCollection
 # First fragment should NOT be in the list
-jsonpath "$.fragments" not includes {{fragment1_id}}
+jsonpath "$.fragments" not contains {{fragment1_id}}
 # Second fragment should still be in the list
-jsonpath "$.fragments" includes {{fragment2_id}}
+jsonpath "$.fragments" contains {{fragment2_id}}
