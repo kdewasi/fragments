@@ -186,41 +186,84 @@ jobs:
 
           if [ "$ALB_ARN" != "ALB creation failed" ]; then
             echo "ALB created: $ALB_ARN"
+            echo "Waiting for ALB to be fully active..."
             
-            # Create target group
-            echo "Creating target group..."
-            TG_ARN=$(aws elbv2 create-target-group \
-              --name fragments-tg \
-              --protocol HTTP \
-              --port 8080 \
-              --vpc-id $VPC_ID \
-              --target-type ip \
-              --query 'TargetGroups[0].TargetGroupArn' \
-              --output text 2>/dev/null || echo "TG creation failed")
-            
-            if [ "$TG_ARN" != "TG creation failed" ]; then
-              echo "Target group created: $TG_ARN"
-              
-              # Configure target group attributes to force HTTP/1.1 and prevent protocol switching
-              echo "Configuring target group for HTTP/1.1..."
-              aws elbv2 modify-target-group-attributes \
-                --target-group-arn $TG_ARN \
-                --attributes Key=protocol_version,Value=HTTP1
-              
-              # Create HTTP listener to ensure HTTP/1.1 protocol
-              echo "Creating HTTP listener..."
-              LISTENER_ARN=$(aws elbv2 create-listener \
-                --load-balancer-arn $ALB_ARN \
-                --protocol HTTP \
-                --port 8080 \
-                --default-actions Type=forward,TargetGroupArn=$TG_ARN \
-                --query 'Listeners[0].ListenerArn' \
+            # Wait for ALB to be fully active
+            while true; do
+              ALB_STATE=$(aws elbv2 describe-load-balancers \
+                --load-balancer-arns $ALB_ARN \
+                --query 'LoadBalancers[0].State.Code' \
                 --output text)
               
-              echo "HTTP listener created: $LISTENER_ARN"
-              
-              # Create ECS service with ALB
-              echo "Creating ECS service with ALB..."
+              if [ "$ALB_STATE" = "active" ]; then
+                echo "ALB is now active and ready"
+                break
+              else
+                echo "ALB state: $ALB_STATE, waiting..."
+                sleep 10
+              fi
+            done
+          fi
+
+          # Create target group with proper health check configuration
+          echo "Creating target group..."
+          TG_ARN=$(aws elbv2 create-target-group \
+            --name fragments-tg \
+            --protocol HTTP \
+            --port 8080 \
+            --vpc-id $VPC_ID \
+            --target-type ip \
+            --health-check-protocol HTTP \
+            --health-check-port 8080 \
+            --health-check-path / \
+            --health-check-interval-seconds 30 \
+            --health-check-timeout-seconds 5 \
+            --healthy-threshold-count 2 \
+            --unhealthy-threshold-count 2 \
+            --query 'TargetGroups[0].TargetGroupArn' \
+            --output text 2>/dev/null || echo "TG creation failed")
+
+          if [ "$TG_ARN" != "TG creation failed" ]; then
+            echo "Target group created: $TG_ARN"
+            
+            # Configure target group with proper health checks and settings
+            echo "Configuring target group with health checks..."
+            aws elbv2 modify-target-group-attributes \
+              --target-group-arn $TG_ARN \
+              --attributes Key=deregistration_delay.timeout_seconds,Value=30
+            
+            echo "Waiting for target group to be ready..."
+            sleep 10
+            
+            # Create HTTP listener to ensure HTTP/1.1 protocol
+            echo "Creating HTTP listener..."
+            LISTENER_ARN=$(aws elbv2 create-listener \
+              --load-balancer-arn $ALB_ARN \
+              --protocol HTTP \
+              --port 8080 \
+              --default-actions Type=forward,TargetGroupArn=$TG_ARN \
+              --query 'Listeners[0].ListenerArn' \
+              --output text)
+            
+            echo "HTTP listener created: $LISTENER_ARN"
+            
+            # Check if ECS service already exists
+            echo "Checking if ECS service already exists..."
+            SERVICE_EXISTS=$(aws ecs describe-services \
+              --cluster fragments \
+              --services fragments \
+              --query 'services[0].status' \
+              --output text 2>/dev/null || echo "NONE")
+            
+            if [ "$SERVICE_EXISTS" = "ACTIVE" ] || [ "$SERVICE_EXISTS" = "DRAINING" ]; then
+              echo "ECS service already exists, updating with new task definition..."
+              aws ecs update-service \
+                --cluster fragments \
+                --service fragments \
+                --task-definition $TASK_DEF_ARN \
+                || echo "Service update failed"
+            else
+              echo "Creating new ECS service with ALB..."
               aws ecs create-service \
                 --cluster fragments \
                 --service-name fragments \
@@ -230,10 +273,12 @@ jobs:
                 --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],securityGroups=[$SG_ID],assignPublicIp=ENABLED}" \
                 --load-balancers "targetGroupArn=$TG_ARN,containerName=fragments,containerPort=8080" \
                 || echo "Service creation failed"
-            else
-              echo "Target group creation failed"
             fi
           else
+            echo "Target group creation failed"
+          fi
+
+          if [ "$ALB_ARN" = "ALB creation failed" ]; then
             echo "ALB creation failed - using fallback approach"
             
             # Fallback: just run the task
