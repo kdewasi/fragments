@@ -162,18 +162,19 @@ jobs:
               --output text)
             
             # Add inbound rule for HTTP (port 80) and container port (8080)
+            echo "Adding inbound rule for HTTP (port 80)..."
             aws ec2 authorize-security-group-ingress \
               --group-id $SG_ID \
               --protocol tcp \
               --port 80 \
-              --cidr 0.0.0.0/0
+              --cidr 0.0.0.0/0 || echo "Port 80 rule already exists"
             
-            # Also allow container port for direct access if needed
+            echo "Adding inbound rule for container port (8080)..."
             aws ec2 authorize-security-group-ingress \
               --group-id $SG_ID \
               --protocol tcp \
               --port 8080 \
-              --cidr 0.0.0.0/0
+              --cidr 0.0.0.0/0 || echo "Port 8080 rule already exists"
               
             echo "Security group created: $SG_ID"
           else
