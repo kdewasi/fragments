@@ -19,7 +19,7 @@ console.log('✅ Import successful: authenticate and strategy loaded from auth')
 passport.use(strategy()); // ✅ No strategy name required
 console.log('✅ Passport basic strategy registered');
 
-// ✅ Simplified CORS configuration - most permissive for testing
+// ✅ CORS MUST come BEFORE authentication to handle OPTIONS preflight
 app.use(
   cors({
     origin: '*', // Allow ALL origins
@@ -31,11 +31,20 @@ app.use(
   })
 );
 
-// Additional explicit CORS handling for OPTIONS requests
+// Additional explicit CORS handling for OPTIONS requests - MUST be before auth
 app.options('*', (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
   res.header('Access-Control-Allow-Headers', '*');
+  res.header('Access-Control-Max-Age', '86400');
+  res.status(200).end();
+});
+
+// Specific handler for fragments endpoint OPTIONS - bypasses authentication
+app.options('/v1/fragments', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
   res.header('Access-Control-Max-Age', '86400');
   res.status(200).end();
 });
@@ -86,6 +95,8 @@ app.use(
 );
 
 app.use(passport.initialize());
+
+// ✅ CORS is now handled BEFORE authentication, so OPTIONS requests will work
 app.use('/v1', authenticate(), require('./routes'));
 
 app.get('/', (req, res) => {
