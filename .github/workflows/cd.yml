@@ -161,7 +161,14 @@ jobs:
               --query 'GroupId' \
               --output text)
             
-            # Add inbound rule for HTTP
+            # Add inbound rule for HTTP (port 80) and container port (8080)
+            aws ec2 authorize-security-group-ingress \
+              --group-id $SG_ID \
+              --protocol tcp \
+              --port 80 \
+              --cidr 0.0.0.0/0
+            
+            # Also allow container port for direct access if needed
             aws ec2 authorize-security-group-ingress \
               --group-id $SG_ID \
               --protocol tcp \
@@ -236,11 +243,11 @@ jobs:
             sleep 10
             
             # Create HTTP listener to ensure HTTP/1.1 protocol
-            echo "Creating HTTP listener..."
+            echo "Creating HTTP listener on port 80 (standard HTTP)"
             LISTENER_ARN=$(aws elbv2 create-listener \
               --load-balancer-arn $ALB_ARN \
               --protocol HTTP \
-              --port 8080 \
+              --port 80 \
               --default-actions Type=forward,TargetGroupArn=$TG_ARN \
               --query 'Listeners[0].ListenerArn' \
               --output text)
@@ -305,12 +312,12 @@ jobs:
               --query 'LoadBalancers[0].DNSName' \
               --output text)
             
-            echo "=========================================="
-            echo "🎉 ECS Deployment Successful! 🎉"
-            echo "=========================================="
-            echo "Load Balancer URL: http://$ALB_DNS:8080"
-            echo "Use this URL in your fragments-ui configuration"
-            echo "=========================================="
+                              echo "=========================================="
+                  echo "🎉 ECS Deployment Successful! 🎉"
+                  echo "=========================================="
+                  echo "Load Balancer URL: http://$ALB_DNS"
+                  echo "Use this URL in your fragments-ui configuration"
+                  echo "=========================================="
           else
             echo "=========================================="
             echo "⚠️  ECS Task Started (No Load Balancer) ⚠️"

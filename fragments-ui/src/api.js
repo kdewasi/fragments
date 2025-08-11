@@ -1,6 +1,6 @@
 // ✅ FINAL VERSION: src/api.js
 
-const apiUrl = "http://fragments-alb-1899681317.us-east-1.elb.amazonaws.com:8080"; // ✅ ECS Load Balancer
+const apiUrl = "http://fragments-alb-1899681317.us-east-1.elb.amazonaws.com"; // ✅ ECS Load Balancer (port 80)
 
 /**
  * Fetch all fragments for the authenticated user.
