@@ -31,33 +31,49 @@ app.use(
   })
 );
 
+// Additional explicit CORS handling for OPTIONS requests
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
+  res.header('Access-Control-Allow-Headers', '*');
+  res.header('Access-Control-Max-Age', '86400');
+  res.status(200).end();
+});
+
 // Add debugging middleware to see what's happening with requests
 app.use((req, res, next) => {
-  logger.info({
-    method: req.method,
-    url: req.url,
-    headers: req.headers,
-    userAgent: req.get('User-Agent'),
-    origin: req.get('Origin'),
-    protocol: req.protocol,
-    httpVersion: req.httpVersion
-  }, 'Incoming request debug info');
-  
+  logger.info(
+    {
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      userAgent: req.get('User-Agent'),
+      origin: req.get('Origin'),
+      protocol: req.protocol,
+      httpVersion: req.httpVersion,
+      host: req.get('Host'),
+      referer: req.get('Referer'),
+    },
+    'Incoming request debug info'
+  );
+
   // Ensure proper HTTP/1.1 handling
   res.set('X-Protocol', 'HTTP/1.1');
   res.set('X-Request-ID', `${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  
+
+  // Add CORS headers to every response
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
+  res.header('Access-Control-Allow-Headers', '*');
+
   next();
 });
 
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        connectSrc: ["'self'", '*'], // Allow all connections for development
-      },
-    },
+    contentSecurityPolicy: false, // Disable CSP for testing to avoid CORS conflicts
+    crossOriginEmbedderPolicy: false, // Disable COEP for testing
+    crossOriginResourcePolicy: false, // Disable CORP for testing
   })
 );
 app.use(compression());
