@@ -173,7 +173,7 @@ jobs:
             echo "Using existing security group: $SG_ID"
           fi
 
-          # Create Application Load Balancer
+          # Create Application Load Balancer with explicit HTTP/1.1 configuration
           echo "Creating Application Load Balancer..."
           ALB_ARN=$(aws elbv2 create-load-balancer \
             --name fragments-alb \
@@ -200,6 +200,24 @@ jobs:
             
             if [ "$TG_ARN" != "TG creation failed" ]; then
               echo "Target group created: $TG_ARN"
+              
+              # Configure target group attributes to force HTTP/1.1 and prevent protocol switching
+              echo "Configuring target group for HTTP/1.1..."
+              aws elbv2 modify-target-group-attributes \
+                --target-group-arn $TG_ARN \
+                --attributes Key=protocol_version,Value=HTTP1
+              
+              # Create HTTP listener to ensure HTTP/1.1 protocol
+              echo "Creating HTTP listener..."
+              LISTENER_ARN=$(aws elbv2 create-listener \
+                --load-balancer-arn $ALB_ARN \
+                --protocol HTTP \
+                --port 8080 \
+                --default-actions Type=forward,TargetGroupArn=$TG_ARN \
+                --query 'Listeners[0].ListenerArn' \
+                --output text)
+              
+              echo "HTTP listener created: $LISTENER_ARN"
               
               # Create ECS service with ALB
               echo "Creating ECS service with ALB..."

@@ -38,8 +38,15 @@ app.use((req, res, next) => {
     url: req.url,
     headers: req.headers,
     userAgent: req.get('User-Agent'),
-    origin: req.get('Origin')
+    origin: req.get('Origin'),
+    protocol: req.protocol,
+    httpVersion: req.httpVersion
   }, 'Incoming request debug info');
+  
+  // Ensure proper HTTP/1.1 handling
+  res.set('X-Protocol', 'HTTP/1.1');
+  res.set('X-Request-ID', `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  
   next();
 });
 
