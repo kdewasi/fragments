@@ -24,6 +24,16 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
+      - name: Test AWS CLI
+        run: |
+          echo "Testing AWS CLI configuration..."
+          aws sts get-caller-identity
+          echo "AWS CLI is working!"
+
+          echo "Testing ECS permissions..."
+          aws ecs list-clusters --max-items 5
+          echo "ECS permissions are working!"
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -45,26 +55,41 @@ jobs:
         run: |
           # Get the ECR image URI
           ECR_IMAGE="${{ steps.login-ecr.outputs.registry }}/fragments:${{ github.ref_name }}"
-          
+
+          echo "ECR Registry: ${{ steps.login-ecr.outputs.registry }}"
+          echo "ECR Image: $ECR_IMAGE"
+
           # Update the task definition file with the new image
           sed -i "s|image:.*|image: \"$ECR_IMAGE\"|" fragments-backend/ecs-task-definition.json
-          
+
+          echo "Updated task definition file:"
+          cat fragments-backend/ecs-task-definition.json
+
           # Register the new task definition
           echo "Registering task definition with image: $ECR_IMAGE"
           aws ecs register-task-definition --cli-input-json file://fragments-backend/ecs-task-definition.json
 
+          echo "Task definition registered successfully!"
+
       - name: Check and create ECS cluster if needed
         run: |
+          echo "Checking ECS cluster status..."
           # Check if cluster exists
           if ! aws ecs describe-clusters --clusters fragments --query 'clusters[0].status' --output text 2>/dev/null | grep -q ACTIVE; then
             echo "Creating ECS cluster 'fragments'..."
             aws ecs create-cluster --cluster-name fragments
+            echo "Cluster created successfully!"
           else
             echo "ECS cluster 'fragments' already exists"
           fi
 
+          # Show cluster details
+          echo "Cluster details:"
+          aws ecs describe-clusters --clusters fragments
+
       - name: Check and create ECS service if needed
         run: |
+          echo "Checking ECS service status..."
           # Check if service exists
           if ! aws ecs describe-services --cluster fragments --services fragments --query 'services[0].status' --output text 2>/dev/null | grep -q ACTIVE; then
             echo "Creating ECS service 'fragments'..."
@@ -77,18 +102,22 @@ jobs:
             
             echo "Using task definition: $TASK_DEF_ARN"
             
-            # Create service with default network configuration
+            # Try to create service with minimal configuration
+            echo "Attempting to create ECS service..."
             aws ecs create-service \
               --cluster fragments \
               --service-name fragments \
               --task-definition $TASK_DEF_ARN \
               --desired-count 1 \
               --launch-type FARGATE \
-              --network-configuration "awsvpcConfiguration={subnets=[subnet-12345678],securityGroups=[sg-12345678],assignPublicIp=ENABLED}" \
               || echo "Service creation failed - will try to update existing service"
           else
             echo "ECS service 'fragments' already exists"
           fi
+
+          # Show service details
+          echo "Service details:"
+          aws ecs describe-services --cluster fragments --services fragments
 
       - name: Update ECS service
         run: |
@@ -98,9 +127,17 @@ jobs:
             --service fragments \
             --task-definition fragments:${{ github.ref_name }}
 
+          echo "Service update initiated!"
+
       - name: Wait for service stability
         run: |
           echo "Waiting for service to become stable..."
           aws ecs wait services-stable \
             --cluster fragments \
             --services fragments
+
+          echo "Service is now stable!"
+
+          # Show final service status
+          echo "Final service status:"
+          aws ecs describe-services --cluster fragments --services fragments
