@@ -19,31 +19,30 @@ console.log('✅ Import successful: authenticate and strategy loaded from auth')
 passport.use(strategy()); // ✅ No strategy name required
 console.log('✅ Passport basic strategy registered');
 
-// ✅ Middleware
+// ✅ Simplified CORS configuration - most permissive for testing
 app.use(
   cors({
-    origin: ['http://localhost:1234', 'http://localhost:3000', 'http://localhost:8080', '*'], // Explicit origins + wildcard
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    credentials: true,
-    optionsSuccessStatus: 200, // ✅ Prevents CORS preflight (OPTIONS) errors
+    origin: '*', // Allow ALL origins
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['*'], // Allow ALL headers
+    credentials: false, // Disable credentials for wildcard origin
+    optionsSuccessStatus: 200,
     preflightContinue: false,
   })
 );
 
-// Add explicit CORS headers to ensure they're not stripped by Load Balancer
+// Add debugging middleware to see what's happening with requests
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+  logger.info({
+    method: req.method,
+    url: req.url,
+    headers: req.headers,
+    userAgent: req.get('User-Agent'),
+    origin: req.get('Origin')
+  }, 'Incoming request debug info');
   next();
 });
+
 app.use(
   helmet({
     contentSecurityPolicy: {
