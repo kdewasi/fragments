@@ -22,13 +22,28 @@ console.log('✅ Passport basic strategy registered');
 // ✅ Middleware
 app.use(
   cors({
-    origin: true, // Allow all origins for development
-    methods: 'GET,POST,PUT,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Authorization',
+    origin: ['http://localhost:1234', 'http://localhost:3000', 'http://localhost:8080', '*'], // Explicit origins + wildcard
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
     optionsSuccessStatus: 200, // ✅ Prevents CORS preflight (OPTIONS) errors
+    preflightContinue: false,
   })
 );
+
+// Add explicit CORS headers to ensure they're not stripped by Load Balancer
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  next();
+});
 app.use(
   helmet({
     contentSecurityPolicy: {
