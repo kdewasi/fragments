@@ -99,6 +99,16 @@ app.use(passport.initialize());
 // ✅ CORS is now handled BEFORE authentication, so OPTIONS requests will work
 app.use('/v1', authenticate(), require('./routes'));
 
+// Health check endpoint for Load Balancer (no authentication required)
+app.get('/health', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.status(200).json({

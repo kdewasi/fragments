@@ -222,11 +222,11 @@ jobs:
             --target-type ip \
             --health-check-protocol HTTP \
             --health-check-port 8080 \
-            --health-check-path / \
-            --health-check-interval-seconds 30 \
-            --health-check-timeout-seconds 5 \
+            --health-check-path /health \
+            --health-check-interval-seconds 60 \
+            --health-check-timeout-seconds 30 \
             --healthy-threshold-count 2 \
-            --unhealthy-threshold-count 2 \
+            --unhealthy-threshold-count 5 \
             --query 'TargetGroups[0].TargetGroupArn' \
             --output text 2>/dev/null || echo "TG creation failed")
 
@@ -252,15 +252,26 @@ jobs:
               --query 'Listeners[0].ListenerArn' \
               --output text)
             
-            echo "HTTP listener created: $LISTENER_ARN"
-            
-            # Check if ECS service already exists
-            echo "Checking if ECS service already exists..."
-            SERVICE_EXISTS=$(aws ecs describe-services \
-              --cluster fragments \
-              --services fragments \
-              --query 'services[0].status' \
-              --output text 2>/dev/null || echo "NONE")
+                              echo "HTTP listener created: $LISTENER_ARN"
+                  
+                  # Wait for target group to be ready and check health
+                  echo "Waiting for target group to be ready and checking health..."
+                  sleep 15
+                  
+                  # Check target group health
+                  echo "Checking target group health status..."
+                  aws elbv2 describe-target-health \
+                    --target-group-arn $TG_ARN \
+                    --query 'TargetHealthDescriptions[0].TargetHealth.State' \
+                    --output text || echo "Could not check target health"
+                  
+                  # Check if ECS service already exists
+                  echo "Checking if ECS service already exists..."
+                  SERVICE_EXISTS=$(aws ecs describe-services \
+                    --cluster fragments \
+                    --services fragments \
+                    --query 'services[0].status' \
+                    --output text 2>/dev/null || echo "NONE")
             
             if [ "$SERVICE_EXISTS" = "ACTIVE" ] || [ "$SERVICE_EXISTS" = "DRAINING" ]; then
               echo "ECS service already exists, updating with new task definition..."
