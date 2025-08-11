@@ -1,6 +1,6 @@
 // ✅ FINAL VERSION: src/api.js
 
-const apiUrl = "http://localhost:8080"; // ✅ Local MinIO Server
+const apiUrl = "http://fragments-alb-1899681317.us-east-1.elb.amazonaws.com:8080"; // ✅ ECS Load Balancer
 
 /**
  * Fetch all fragments for the authenticated user.
