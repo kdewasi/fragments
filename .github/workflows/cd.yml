@@ -71,6 +71,10 @@ jobs:
 
           echo "Task definition registered successfully!"
 
+          # Wait a moment for the task definition to be fully available
+          echo "Waiting for task definition to be available..."
+          sleep 10
+
       - name: Check and create ECS cluster if needed
         run: |
           echo "Checking ECS cluster status..."
@@ -91,11 +95,19 @@ jobs:
         run: |
           echo "Creating ECS service with Application Load Balancer..."
 
-          # Get the latest task definition ARN
+                    # Get the latest task definition ARN by family name (latest revision)
+          echo "Getting latest task definition ARN..."
           TASK_DEF_ARN=$(aws ecs describe-task-definition \
-            --task-definition fragments:${{ github.ref_name }} \
+            --task-definition fragments \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
+
+          if [ -z "$TASK_DEF_ARN" ] || [ "$TASK_DEF_ARN" = "None" ]; then
+            echo "ERROR: Could not retrieve task definition ARN"
+            echo "Available task definitions:"
+            aws ecs list-task-definitions --family-prefix fragments
+            exit 1
+          fi
 
           echo "Using task definition: $TASK_DEF_ARN"
 
@@ -216,7 +228,7 @@ jobs:
               || echo "Task start failed - but task definition was created successfully!"
           fi
 
-                    echo "ECS deployment completed!"
+          echo "ECS deployment completed!"
 
           # Show running tasks
           echo "Current running tasks:"
