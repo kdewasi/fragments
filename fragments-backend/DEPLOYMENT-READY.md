@@ -19,8 +19,8 @@
 ### **3. AWS Credentials - CONFIGURED**
 
 - ✅ GitHub Secrets updated with current Learner Lab credentials:
-  - `AWS_ACCESS_KEY_ID`: ASIAUHPQGBEZVYMQZ6TZ
-  - `AWS_SECRET_ACCESS_KEY`: /6Y+lPp8UmlBbOHe/2uoC914oVGPhpKMy9AKFfNz
+  - `AWS_ACCESS_KEY_ID`: ASIAUHPQGBEZ26K336VT
+  - `AWS_SECRET_ACCESS_KEY`: eU9iuFFFKn+T0JpeiCLIreA4xcwXEGTEFRXThuLF
   - `AWS_SESSION_TOKEN`: [Current session token]
 
 ### **4. Version Tag - CREATED**

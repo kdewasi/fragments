@@ -30,7 +30,7 @@ const getInfo = require('../get-info');
 
 // ✅ Register routes (order matters)
 router.get('/:id/info', getInfo);
-router.get('/:id.:ext', getByExtension); // ✅ now properly linked
+router.get('/:id.:ext', getByExtension); // ✅ restored route
 router.get('/:id', getById);
 router.get('/', get);
 router.post('/', rawBody(), post);
