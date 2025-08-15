@@ -2,18 +2,58 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fragments UI</title>
     <link rel="stylesheet" href="https://unpkg.com/bamboo.css" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#2196f3" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Fragments" />
+
+    <!-- PWA Icons -->
+    <link
+      rel="apple-touch-icon"
+      href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSIyNCIgZmlsbD0iIzIxOTZGMyIvPjxzdmcgeD0iNDgiIHk9IjQ4IiB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xNCAySDZhMiAyIDAgMCAwLTIgMnYxNmEyIDIgMCAwIDAgMiAyaDEyYTIgMiAwIDAgMCAyLTJWOGwtNi02eiIvPjxwYXRoIGQ9Ik0xNCAydjZoNk0xNiAxM0g2YTIgMiAwIDAgMC0yIDJ2NWEyIDIgMCAwIDAgMiAyaDEwYTIgMiAwIDAgMCAyLTJ2LTVhMiAyIDAgMCAwLTItMnoiLz48L3N2Zz48L3N2Zz4="
+    />
   </head>
   <body>
     <h1>Fragments UI</h1>
 
+    <!-- Offline Status Indicator -->
+    <div
+      id="offline-indicator"
+      style="
+        display: none;
+        background: #ff9800;
+        color: white;
+        padding: 8px;
+        text-align: center;
+        font-weight: bold;
+      "
+    >
+      📱 Offline Mode - Some features may be limited
+    </div>
+
     <section>
-      <nav><button id="login">Login</button></nav>
+      <nav>
+        <button id="login">Sign In with Cognito</button>
+        <button id="logout" hidden>Sign Out</button>
+        <button
+          id="install-pwa"
+          hidden
+          style="background: #4caf50; color: white; margin-left: 10px"
+        >
+          📱 Install App
+        </button>
+      </nav>
     </section>
 
     <section hidden id="user">
       <h2>Hello <span class="username"></span>!</h2>
+      <p>✅ Authenticated via Amazon Cognito</p>
     </section>
 
     <h2>Create a Fragment</h2>
