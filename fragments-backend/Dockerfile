@@ -1,7 +1,7 @@
 # -----------------------------
 # Stage 1: Build dependencies
 # -----------------------------
-FROM node:18.13.0 AS builder
+FROM node:18.20.4 AS builder
 
 LABEL stage="builder"
 
@@ -17,7 +17,7 @@ COPY . .
 # -----------------------------
 # Stage 2: Production runtime
 # -----------------------------
-FROM node:18.13.0-slim
+FROM node:18.20.4-slim
 
 # Image metadata (optional but useful)
 LABEL maintainer="Kishan D. <kishandewasi606@gmail.com>"
