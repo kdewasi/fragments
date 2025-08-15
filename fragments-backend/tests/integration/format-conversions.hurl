@@ -6,8 +6,10 @@ POST http://localhost:8080/v1/fragments
 Content-Type: text/markdown
 [BasicAuth]
 kishandewasi606@gmail.com:Jckzwtjh7d
+```
 # Hello World
 This is **bold** text.
+```
 
 HTTP/1.1 201
 [Asserts]
@@ -42,7 +44,9 @@ POST http://localhost:8080/v1/fragments
 Content-Type: application/json
 [BasicAuth]
 kishandewasi606@gmail.com:Jckzwtjh7d
+```
 {"name": "test", "value": 123}
+```
 
 HTTP/1.1 201
 [Asserts]
