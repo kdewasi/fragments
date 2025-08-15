@@ -30,10 +30,6 @@ jobs:
           aws sts get-caller-identity
           echo "AWS CLI is working!"
 
-          echo "Testing ECS permissions..."
-          aws ecs list-clusters --max-items 5
-          echo "ECS permissions are working!"
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -51,290 +47,32 @@ jobs:
           push: true
           tags: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ env.VERSION_TAG }}, ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest
 
-      - name: Update ECS task definition with new image
-        run: |
-          # Get the ECR image URI
-          ECR_IMAGE="${{ steps.login-ecr.outputs.registry }}/fragments:${{ github.ref_name }}"
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: update-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPO: fragments
+          VERSION_TAG: ${{ github.ref_name }}
+        with:
+          task-definition: fragments-backend/ecs-task-definition.json
+          container-name: fragments
+          # Use the image we just built and pushed to ECR for this tag
+          image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ env.VERSION_TAG }}
+          # Add all the necessary environment variables
+          environment-variables: |
+            LOG_LEVEL=info
+            NODE_ENV=production
+            PORT=8080
+            HTPASSWD_FILE=tests/.htpasswd
+            AWS_REGION=us-east-1
+            AWS_S3_BUCKET_NAME=kdewasi-fragments
+            AWS_DYNAMODB_TABLE_NAME=fragments
 
-          echo "ECR Registry: ${{ steps.login-ecr.outputs.registry }}"
-          echo "ECR Image: $ECR_IMAGE"
-
-          # Update the task definition file with the new image
-          sed -i "s|image:.*|image: \"$ECR_IMAGE\"|" fragments-backend/ecs-task-definition.json
-
-          echo "Updated task definition file:"
-          cat fragments-backend/ecs-task-definition.json
-
-          # Register the new task definition
-          echo "Registering task definition with image: $ECR_IMAGE"
-          aws ecs register-task-definition --cli-input-json file://fragments-backend/ecs-task-definition.json
-
-          echo "Task definition registered successfully!"
-
-          # Wait a moment for the task definition to be fully available
-          echo "Waiting for task definition to be available..."
-          sleep 10
-
-      - name: Check and create ECS cluster if needed
-        run: |
-          echo "Checking ECS cluster status..."
-          # Check if cluster exists
-          if ! aws ecs describe-clusters --clusters fragments --query 'clusters[0].status' --output text 2>/dev/null | grep -q ACTIVE; then
-            echo "Creating ECS cluster 'fragments'..."
-            aws ecs create-cluster --cluster-name fragments
-            echo "Cluster created successfully!"
-          else
-            echo "ECS cluster 'fragments' already exists"
-          fi
-
-          # Show cluster details
-          echo "Cluster details:"
-          aws ecs describe-clusters --clusters fragments
-
-      - name: Run ECS task directly
-        run: |
-          echo "Creating ECS service with Application Load Balancer..."
-
-                    # Get the latest task definition ARN by family name (latest revision)
-          echo "Getting latest task definition ARN..."
-          TASK_DEF_ARN=$(aws ecs describe-task-definition \
-            --task-definition fragments \
-            --query 'taskDefinition.taskDefinitionArn' \
-            --output text)
-
-          if [ -z "$TASK_DEF_ARN" ] || [ "$TASK_DEF_ARN" = "None" ]; then
-            echo "ERROR: Could not retrieve task definition ARN"
-            echo "Available task definitions:"
-            aws ecs list-task-definitions --family-prefix fragments
-            exit 1
-          fi
-
-          echo "Using task definition: $TASK_DEF_ARN"
-
-          # Discover available VPC, subnets, and security groups
-          echo "Discovering available VPC resources..."
-
-          # Get default VPC
-          VPC_ID=$(aws ec2 describe-vpcs \
-            --filters "Name=is-default,Values=true" \
-            --query 'Vpcs[0].VpcId' \
-            --output text)
-
-          if [ "$VPC_ID" = "None" ] || [ -z "$VPC_ID" ]; then
-            echo "No default VPC found, trying to get first available VPC..."
-            VPC_ID=$(aws ec2 describe-vpcs \
-              --query 'Vpcs[0].VpcId' \
-              --output text)
-          fi
-
-          echo "Using VPC: $VPC_ID"
-
-          # Get public subnets in the VPC
-          SUBNET_IDS=$(aws ec2 describe-subnets \
-            --filters "Name=vpc-id,Values=$VPC_ID" "Name=map-public-ip-on-launch,Values=true" \
-            --query 'Subnets[*].SubnetId' \
-            --output text | head -n 2 | tr '\n' ' ')
-
-          if [ -z "$SUBNET_IDS" ]; then
-            echo "No public subnets found, getting all subnets..."
-            SUBNET_IDS=$(aws ec2 describe-subnets \
-              --filters "Name=vpc-id,Values=$VPC_ID" \
-              --query 'Subnets[*].SubnetId' \
-              --output text | head -n 2 | tr '\n' ' ')
-          fi
-
-          echo "Using subnets: $SUBNET_IDS"
-
-          # Get or create security group
-          SG_NAME="fragments-sg"
-          SG_ID=$(aws ec2 describe-security-groups \
-            --filters "Name=group-name,Values=$SG_NAME" "Name=vpc-id,Values=$VPC_ID" \
-            --query 'SecurityGroups[0].GroupId' \
-            --output text)
-
-          if [ "$SG_ID" = "None" ] || [ -z "$SG_ID" ]; then
-            echo "Creating security group: $SG_NAME"
-            SG_ID=$(aws ec2 create-security-group \
-              --group-name $SG_NAME \
-              --description "Security group for fragments ECS service" \
-              --vpc-id $VPC_ID \
-              --query 'GroupId' \
-              --output text)
-            
-            # Add inbound rule for HTTP (port 80) and container port (8080)
-            echo "Adding inbound rule for HTTP (port 80)..."
-            aws ec2 authorize-security-group-ingress \
-              --group-id $SG_ID \
-              --protocol tcp \
-              --port 80 \
-              --cidr 0.0.0.0/0 || echo "Port 80 rule already exists"
-            
-            echo "Adding inbound rule for container port (8080)..."
-            aws ec2 authorize-security-group-ingress \
-              --group-id $SG_ID \
-              --protocol tcp \
-              --port 8080 \
-              --cidr 0.0.0.0/0 || echo "Port 8080 rule already exists"
-              
-            echo "Security group created: $SG_ID"
-          else
-            echo "Using existing security group: $SG_ID"
-          fi
-
-          # Create Application Load Balancer with explicit HTTP/1.1 configuration
-          echo "Creating Application Load Balancer..."
-          ALB_ARN=$(aws elbv2 create-load-balancer \
-            --name fragments-alb \
-            --subnets $SUBNET_IDS \
-            --security-groups $SG_ID \
-            --scheme internet-facing \
-            --type application \
-            --query 'LoadBalancers[0].LoadBalancerArn' \
-            --output text 2>/dev/null || echo "ALB creation failed")
-
-          if [ "$ALB_ARN" != "ALB creation failed" ]; then
-            echo "ALB created: $ALB_ARN"
-            echo "Waiting for ALB to be fully active..."
-            
-            # Wait for ALB to be fully active
-            while true; do
-              ALB_STATE=$(aws elbv2 describe-load-balancers \
-                --load-balancer-arns $ALB_ARN \
-                --query 'LoadBalancers[0].State.Code' \
-                --output text)
-              
-              if [ "$ALB_STATE" = "active" ]; then
-                echo "ALB is now active and ready"
-                break
-              else
-                echo "ALB state: $ALB_STATE, waiting..."
-                sleep 10
-              fi
-            done
-          fi
-
-          # Create target group with proper health check configuration
-          echo "Creating target group..."
-          TG_ARN=$(aws elbv2 create-target-group \
-            --name fragments-tg \
-            --protocol HTTP \
-            --port 8080 \
-            --vpc-id $VPC_ID \
-            --target-type ip \
-            --health-check-protocol HTTP \
-            --health-check-port 8080 \
-            --health-check-path /health \
-            --health-check-interval-seconds 60 \
-            --health-check-timeout-seconds 30 \
-            --healthy-threshold-count 2 \
-            --unhealthy-threshold-count 5 \
-            --query 'TargetGroups[0].TargetGroupArn' \
-            --output text 2>/dev/null || echo "TG creation failed")
-
-          if [ "$TG_ARN" != "TG creation failed" ]; then
-            echo "Target group created: $TG_ARN"
-            
-            # Configure target group with proper health checks and settings
-            echo "Configuring target group with health checks..."
-            aws elbv2 modify-target-group-attributes \
-              --target-group-arn $TG_ARN \
-              --attributes Key=deregistration_delay.timeout_seconds,Value=30
-            
-            echo "Waiting for target group to be ready..."
-            sleep 10
-            
-            # Create HTTP listener to ensure HTTP/1.1 protocol
-            echo "Creating HTTP listener on port 80 (standard HTTP)"
-            LISTENER_ARN=$(aws elbv2 create-listener \
-              --load-balancer-arn $ALB_ARN \
-              --protocol HTTP \
-              --port 80 \
-              --default-actions Type=forward,TargetGroupArn=$TG_ARN \
-              --query 'Listeners[0].ListenerArn' \
-              --output text)
-            
-                              echo "HTTP listener created: $LISTENER_ARN"
-                  
-                  # Wait for target group to be ready and check health
-                  echo "Waiting for target group to be ready and checking health..."
-                  sleep 15
-                  
-                  # Check target group health
-                  echo "Checking target group health status..."
-                  aws elbv2 describe-target-health \
-                    --target-group-arn $TG_ARN \
-                    --query 'TargetHealthDescriptions[0].TargetHealth.State' \
-                    --output text || echo "Could not check target health"
-                  
-                  # Check if ECS service already exists
-                  echo "Checking if ECS service already exists..."
-                  SERVICE_EXISTS=$(aws ecs describe-services \
-                    --cluster fragments \
-                    --services fragments \
-                    --query 'services[0].status' \
-                    --output text 2>/dev/null || echo "NONE")
-            
-            if [ "$SERVICE_EXISTS" = "ACTIVE" ] || [ "$SERVICE_EXISTS" = "DRAINING" ]; then
-              echo "ECS service already exists, updating with new task definition..."
-              aws ecs update-service \
-                --cluster fragments \
-                --service fragments \
-                --task-definition $TASK_DEF_ARN \
-                || echo "Service update failed"
-            else
-              echo "Creating new ECS service with ALB..."
-              aws ecs create-service \
-                --cluster fragments \
-                --service-name fragments \
-                --task-definition $TASK_DEF_ARN \
-                --desired-count 1 \
-                --launch-type FARGATE \
-                --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],securityGroups=[$SG_ID],assignPublicIp=ENABLED}" \
-                --load-balancers "targetGroupArn=$TG_ARN,containerName=fragments,containerPort=8080" \
-                || echo "Service creation failed"
-            fi
-          else
-            echo "Target group creation failed"
-          fi
-
-          if [ "$ALB_ARN" = "ALB creation failed" ]; then
-            echo "ALB creation failed - using fallback approach"
-            
-            # Fallback: just run the task
-            echo "Starting ECS task directly..."
-            aws ecs run-task \
-              --cluster fragments \
-              --task-definition $TASK_DEF_ARN \
-              --launch-type FARGATE \
-              --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],securityGroups=[$SG_ID],assignPublicIp=ENABLED}" \
-              || echo "Task start failed - but task definition was created successfully!"
-          fi
-
-          echo "ECS deployment completed!"
-
-          # Show running tasks
-          echo "Current running tasks:"
-          aws ecs list-tasks --cluster fragments
-
-          # Get Load Balancer URL if ALB was created
-          if [ "$ALB_ARN" != "ALB creation failed" ] && [ -n "$ALB_ARN" ]; then
-            echo "Getting Load Balancer URL..."
-            ALB_DNS=$(aws elbv2 describe-load-balancers \
-              --load-balancer-arns $ALB_ARN \
-              --query 'LoadBalancers[0].DNSName' \
-              --output text)
-            
-                              echo "=========================================="
-                  echo "🎉 ECS Deployment Successful! 🎉"
-                  echo "=========================================="
-                  echo "Load Balancer URL: http://$ALB_DNS"
-                  echo "Use this URL in your fragments-ui configuration"
-                  echo "=========================================="
-          else
-            echo "=========================================="
-            echo "⚠️  ECS Task Started (No Load Balancer) ⚠️"
-            echo "=========================================="
-            echo "Task definition created and registered successfully"
-            echo "ECS task started directly (no ALB integration)"
-            echo "=========================================="
-          fi
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.update-task-def.outputs.task-definition }}
+          cluster: fragments
+          service: fragments
+          wait-for-service-stability: true
