@@ -1,6 +1,7 @@
 const { Fragment } = require('../../model/fragment');
 const MarkdownIt = require('markdown-it');
 const sharp = require('sharp');
+const yaml = require('js-yaml');
 const md = new MarkdownIt();
 
 // Helper function to get MIME type from extension
@@ -57,12 +58,10 @@ module.exports = async (req, res) => {
     }
     // Handle JSON/YAML conversions
     else if (ext === 'json' && fragment.type === 'application/yaml') {
-      const yaml = require('js-yaml');
       const obj = yaml.load(data.toString());
       convertedData = Buffer.from(JSON.stringify(obj, null, 2));
       contentType = 'application/json';
     } else if (ext === 'yaml' && fragment.type === 'application/json') {
-      const yaml = require('js-yaml');
       const obj = JSON.parse(data.toString());
       convertedData = Buffer.from(yaml.dump(obj));
       contentType = 'application/yaml';

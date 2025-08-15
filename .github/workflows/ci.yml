@@ -70,6 +70,13 @@ jobs:
       - name: Setup Local AWS Resources
         working-directory: fragments-backend
         run: chmod +x ./scripts/local-aws-setup.sh && ./scripts/local-aws-setup.sh
+      - name: Wait for server to be ready
+        working-directory: fragments-backend
+        run: |
+          echo "Waiting for server to start..."
+          sleep 10
+          echo "Checking if server is responding..."
+          curl -f http://localhost:8080/health || exit 1
       - name: Run Hurl Tests
         working-directory: fragments-backend
         run: npm run test:integration
