@@ -69,10 +69,20 @@ jobs:
             AWS_S3_BUCKET_NAME=kdewasi-fragments
             AWS_DYNAMODB_TABLE_NAME=fragments
 
+      - name: Create ECS cluster if needed
+        run: |
+          echo "Checking if ECS cluster exists..."
+          if ! aws ecs describe-clusters --clusters fragments --query 'clusters[0].status' --output text 2>/dev/null | grep -q ACTIVE; then
+            echo "Creating ECS cluster..."
+            aws ecs create-cluster --cluster-name fragments
+          else
+            echo "ECS cluster already exists"
+          fi
+
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.update-task-def.outputs.task-definition }}
-          cluster: fragments
-          service: fragments
+          cluster: fragments-cluster
+          service: fragments-service-9afmq8nw
           wait-for-service-stability: true
