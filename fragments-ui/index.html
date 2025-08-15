@@ -21,19 +21,73 @@
       <label for="type">Type:</label>
       <select id="type">
         <option value="text/plain">text/plain</option>
-        <option value="application/json">application/json</option>
         <option value="text/markdown">text/markdown</option>
+        <option value="text/html">text/html</option>
+        <option value="text/csv">text/csv</option>
+        <option value="application/json">application/json</option>
+        <option value="application/yaml">application/yaml</option>
       </select>
       <br />
       <label for="content">Content:</label><br />
-      <textarea id="content" rows="6" cols="50"></textarea><br />
+      <textarea
+        id="content"
+        rows="6"
+        cols="50"
+        placeholder="Enter your fragment content here..."
+      ></textarea
+      ><br />
+
+      <h3>Or Upload an Image:</h3>
+      <input type="file" id="image-input" accept="image/*" />
+      <br /><br />
+
       <button type="submit">Create Fragment</button>
     </form>
     <div id="post-result" style="margin-top: 1rem"></div>
 
     <h2>Your Fragments</h2>
     <button id="load-fragments">Load My Fragments</button>
-    <ul id="fragment-list"></ul>
+    <div id="fragment-list"></div>
+
+    <h2>Fragment Actions</h2>
+    <div id="fragment-actions" style="margin-top: 1rem">
+      <input type="text" id="fragment-id" placeholder="Fragment ID" />
+      <button id="view-fragment">View Fragment</button>
+      <button id="delete-fragment">Delete Fragment</button>
+      <button id="update-fragment">Update Fragment</button>
+    </div>
+
+    <h2>Format Conversions</h2>
+    <div id="conversion-actions" style="margin-top: 1rem">
+      <input
+        type="text"
+        id="conversion-fragment-id"
+        placeholder="Fragment ID"
+      />
+      <select id="conversion-format">
+        <option value="txt">Plain Text (.txt)</option>
+        <option value="html">HTML (.html)</option>
+        <option value="json">JSON (.json)</option>
+        <option value="yaml">YAML (.yaml)</option>
+        <option value="png">PNG (.png)</option>
+        <option value="jpeg">JPEG (.jpeg)</option>
+        <option value="webp">WebP (.webp)</option>
+      </select>
+      <button id="convert-fragment">Convert Fragment</button>
+    </div>
+
+    <div
+      id="result-display"
+      style="
+        margin-top: 2rem;
+        padding: 1rem;
+        border: 1px solid #ccc;
+        min-height: 100px;
+      "
+    >
+      <h3>Results:</h3>
+      <div id="result-content"></div>
+    </div>
 
     <script type="module" src="./src/app.js"></script>
   </body>
