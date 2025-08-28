@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Image Upload</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input[type="file"] { margin: 10px 0; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Image Upload Test</h1>
+    
+    <div class="test-section">
+        <h3>1. Basic Auth Test</h3>
+        <button onclick="testAuth()">Test Authentication</button>
+        <div id="auth-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Image Upload Test</h3>
+        <input type="file" id="imageFile" accept="image/*">
+        <button onclick="testImageUpload()">Upload Image</button>
+        <div id="upload-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Text Fragment Test</h3>
+        <textarea id="textContent" placeholder="Enter text content...">Hello from test upload!</textarea>
+        <button onclick="testTextUpload()">Upload Text</button>
+        <div id="text-result"></div>
+    </div>
+
+    <script>
+        const API_URL = "http://fragments-alb-1899681317.us-east-1.elb.amazonaws.com";
+        
+        const TEST_USER = {
+            email: "kishandewasi606@gmail.com",
+            password: "Jckzwtjh7d",
+            authorizationHeaders: (type = "application/json") => ({
+                "Content-Type": type,
+                "Authorization": `Basic ${btoa("kishandewasi606@gmail.com:Jckzwtjh7d")}`
+            })
+        };
+
+        async function testAuth() {
+            const resultDiv = document.getElementById('auth-result');
+            resultDiv.innerHTML = '⏳ Testing authentication...';
+            
+            try {
+                const response = await fetch(`${API_URL}/v1/fragments`, {
+                    headers: TEST_USER.authorizationHeaders()
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `<div class="success">✅ Auth Success! Found ${data.fragments?.length || 0} fragments</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Auth Failed: ${response.status} ${response.statusText}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testImageUpload() {
+            const fileInput = document.getElementById('imageFile');
+            const resultDiv = document.getElementById('upload-result');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '<div class="error">❌ Please select an image file first</div>';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = `⏳ Uploading ${file.name} (${file.type}, ${(file.size/1024).toFixed(1)}KB)...`;
+            
+            try {
+                // Convert file to ArrayBuffer
+                const arrayBuffer = await file.arrayBuffer();
+                console.log(`📦 File converted to ArrayBuffer: ${arrayBuffer.byteLength} bytes`);
+                
+                const response = await fetch(`${API_URL}/v1/fragments`, {
+                    method: 'POST',
+                    headers: {
+                        ...TEST_USER.authorizationHeaders(file.type),
+                        'Content-Type': file.type
+                    },
+                    body: arrayBuffer
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Image uploaded successfully!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<div class="error">❌ Upload Failed: ${response.status} ${response.statusText}<br>${errorText}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                console.error('Upload error:', error);
+            }
+        }
+
+        async function testTextUpload() {
+            const textContent = document.getElementById('textContent').value.trim();
+            const resultDiv = document.getElementById('text-result');
+            
+            if (!textContent) {
+                resultDiv.innerHTML = '<div class="error">❌ Please enter some text content</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = `⏳ Uploading text fragment...`;
+            
+            try {
+                const response = await fetch(`${API_URL}/v1/fragments`, {
+                    method: 'POST',
+                    headers: {
+                        ...TEST_USER.authorizationHeaders('text/plain'),
+                        'Content-Type': 'text/plain'
+                    },
+                    body: textContent
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Text uploaded successfully!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<div class="error">❌ Upload Failed: ${response.status} ${response.statusText}<br>${errorText}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                console.error('Upload error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

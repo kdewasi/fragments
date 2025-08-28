@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fragments - Cloud Microservice</title>
+    <link rel="stylesheet" href="https://unpkg.com/bamboo.css" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#2196f3" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Fragments" />
+
+    <!-- PWA Icons -->
+    <link
+      rel="apple-touch-icon"
+      href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSIyNCIgZmlsbD0iIzIxOTZGMyIvPjxzdmcgeD0iNDgiIHk9IjQ4IiB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xNCAySDZhMiAyIDAgMCAwLTIgMnYxNmEyIDIgMCAwIDAgMiAyaDEyYTIgMiAwIDAgMCAyLTJWOGwtNi02eiIvPjxwYXRoIGQ9Ik0xNCAydjZoNk0xNiAxM0g2YTIgMiAwIDAgMC0yIDJ2NWEyIDIgMCAwIDAgMiAyaDEwYTIgMiAwIDAgMCAyLTJ2LTVhMiAyIDAgMCAwLTItMnoiLz48L3N2Zz48L3N2Zz4="
+    />
+
+    <style>
+      :root {
+        --primary-color: #2196f3;
+        --primary-dark: #1976d2;
+        --secondary-color: #4caf50;
+        --accent-color: #ff9800;
+        --error-color: #f44336;
+        --success-color: #4caf50;
+        --warning-color: #ff9800;
+        --bg-light: #f8fafc;
+        --bg-dark: #1e293b;
+        --card-bg: #ffffff;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --border-color: #e2e8f0;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        --radius: 8px;
+        --spacing: 1rem;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        background: linear-gradient(135deg, var(--bg-light) 0%, #e2e8f0 100%);
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        color: var(--text-primary);
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding: 2rem 0;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--primary-dark)
+        );
+        color: white;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+
+      .header p {
+        margin: 0.5rem 0 0 0;
+        opacity: 0.9;
+        font-size: 1.1rem;
+      }
+
+      .status-bar {
+        background: var(--warning-color);
+        color: white;
+        padding: 0.75rem;
+        text-align: center;
+        font-weight: 600;
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        display: none;
+        box-shadow: var(--shadow);
+      }
+
+      .auth-section {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+      }
+
+      .auth-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: var(--radius);
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        box-shadow: var(--shadow);
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .btn-primary {
+        background: var(--primary-color);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-dark);
+      }
+
+      .btn-secondary {
+        background: var(--text-secondary);
+        color: white;
+      }
+
+      .btn-success {
+        background: var(--success-color);
+        color: white;
+      }
+
+      .btn-warning {
+        background: var(--warning-color);
+        color: white;
+      }
+
+      .btn-danger {
+        background: var(--error-color);
+        color: white;
+      }
+
+      .user-info {
+        background: linear-gradient(135deg, var(--success-color), #45a049);
+        color: white;
+        padding: 1rem;
+        border-radius: var(--radius);
+        text-align: center;
+        box-shadow: var(--shadow);
+      }
+
+      .user-info h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.2rem;
+      }
+
+      .user-info p {
+        margin: 0;
+        opacity: 0.9;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      .card-header h2 {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .card-header i {
+        color: var(--primary-color);
+        font-size: 1.25rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius);
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        background: white;
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 1rem;
+        align-items: end;
+      }
+
+      .file-input-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+      }
+
+      .file-input {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+      }
+
+      .file-input-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 2rem;
+        border: 2px dashed var(--border-color);
+        border-radius: var(--radius);
+        background: var(--bg-light);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+      }
+
+      .file-input-label:hover {
+        border-color: var(--primary-color);
+        background: rgba(33, 150, 243, 0.05);
+      }
+
+      .results-display {
+        background: var(--bg-light);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        margin-top: 1rem;
+        border: 1px solid var(--border-color);
+        min-height: 100px;
+      }
+
+      .results-display h3 {
+        margin: 0 0 1rem 0;
+        color: var(--text-primary);
+      }
+
+      .fragment-grid {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .fragment-item {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        box-shadow: var(--shadow);
+        transition: all 0.2s ease;
+      }
+
+      .fragment-item:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary-color);
+      }
+
+      .fragment-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .fragment-type {
+        display: inline-block;
+        background: var(--primary-color);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .fragment-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+
+      .fragment-actions .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+      }
+
+      .action-section {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 1rem;
+        align-items: end;
+      }
+
+      .conversion-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 1rem;
+        align-items: end;
+      }
+
+      .alert {
+        padding: 1rem;
+        border-radius: var(--radius);
+        margin: 1rem 0;
+        font-weight: 500;
+      }
+
+      .alert-success {
+        background: rgba(76, 175, 80, 0.1);
+        border: 1px solid var(--success-color);
+        color: var(--success-color);
+      }
+
+      .alert-error {
+        background: rgba(244, 67, 54, 0.1);
+        border: 1px solid var(--error-color);
+        color: var(--error-color);
+      }
+
+      .alert-warning {
+        background: rgba(255, 152, 0, 0.1);
+        border: 1px solid var(--warning-color);
+        color: var(--warning-color);
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 1rem;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+        }
+
+        .form-row,
+        .action-section,
+        .conversion-section {
+          grid-template-columns: 1fr;
+        }
+
+        .auth-buttons {
+          flex-direction: column;
+        }
+
+        .fragment-actions {
+          flex-direction: column;
+        }
+      }
+
+      .loading {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .fade-in {
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Fragments UI</h1>
+
+    <!-- Offline Status Indicator -->
+    <div
+      id="offline-indicator"
+      style="
+        display: none;
+        background: #ff9800;
+        color: white;
+        padding: 8px;
+        text-align: center;
+        font-weight: bold;
+      "
+    >
+      📱 Offline Mode - Some features may be limited
+    </div>
+
+    <section>
+      <nav>
+        <button id="login">Sign In (Basic Auth)</button>
+        <button id="logout" hidden>Sign Out</button>
+        <button
+          id="install-pwa"
+          hidden
+          style="background: #4caf50; color: white; margin-left: 10px"
+        >
+          📱 Install App
+        </button>
+      </nav>
+    </section>
+
+    <section hidden id="user">
+      <h2>Hello <span class="username"></span>!</h2>
+      <p>✅ Authenticated via HTTP Basic Auth</p>
+    </section>
+
+    <h2>Create a Fragment</h2>
+    <form id="create-form">
+      <label for="type">Type:</label>
+      <select id="type">
+        <option value="text/plain">text/plain</option>
+        <option value="text/markdown">text/markdown</option>
+        <option value="text/html">text/html</option>
+        <option value="text/csv">text/csv</option>
+        <option value="application/json">application/json</option>
+        <option value="application/yaml">application/yaml</option>
+      </select>
+      <br />
+      <label for="content">Content:</label><br />
+      <textarea
+        id="content"
+        rows="6"
+        cols="50"
+        placeholder="Enter your fragment content here..."
+      ></textarea
+      ><br />
+
+      <h3>Or Upload an Image:</h3>
+      <input type="file" id="image-input" accept="image/*" />
+      <br /><br />
+
+      <button type="submit">Create Fragment</button>
+    </form>
+    <div id="post-result" style="margin-top: 1rem"></div>
+
+    <h2>Your Fragments</h2>
+    <button id="load-fragments">Load My Fragments</button>
+    <div id="fragment-list"></div>
+
+    <h2>Fragment Actions</h2>
+    <div id="fragment-actions" style="margin-top: 1rem">
+      <input type="text" id="fragment-id" placeholder="Fragment ID" />
+      <button id="view-fragment">View Fragment</button>
+      <button id="delete-fragment">Delete Fragment</button>
+      <button id="update-fragment">Update Fragment</button>
+    </div>
+
+    <h2>Format Conversions</h2>
+    <div id="conversion-actions" style="margin-top: 1rem">
+      <input
+        type="text"
+        id="conversion-fragment-id"
+        placeholder="Fragment ID"
+      />
+      <select id="conversion-format">
+        <option value="txt">Plain Text (.txt)</option>
+        <option value="html">HTML (.html)</option>
+        <option value="json">JSON (.json)</option>
+        <option value="yaml">YAML (.yaml)</option>
+        <option value="png">PNG (.png)</option>
+        <option value="jpeg">JPEG (.jpeg)</option>
+        <option value="webp">WebP (.webp)</option>
+      </select>
+      <button id="convert-fragment">Convert Fragment</button>
+    </div>
+
+    <div
+      id="result-display"
+      style="
+        margin-top: 2rem;
+        padding: 1rem;
+        border: 1px solid #ccc;
+        min-height: 100px;
+      "
+    >
+      <h3>Results:</h3>
+      <div id="result-content"></div>
+    </div>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>

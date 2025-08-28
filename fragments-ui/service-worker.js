@@ -1,6 +1,6 @@
 // Service Worker for Fragments PWA
-const CACHE_NAME = "fragments-pwa-v1";
-const API_CACHE_NAME = "fragments-api-v1";
+const CACHE_NAME = "fragments-pwa-v2";
+const API_CACHE_NAME = "fragments-api-v2";
 
 // Files to cache for offline use
 const STATIC_CACHE_FILES = [
@@ -9,7 +9,7 @@ const STATIC_CACHE_FILES = [
   "/callback.html",
   "/silent-callback.html",
   "/src/app.js",
-  "/src/auth.js",
+  "/src/auth-basic.js",
   "/src/api.js",
   "https://unpkg.com/bamboo.css",
 ];

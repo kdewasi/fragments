@@ -24,26 +24,35 @@ export async function getFragments(user) {
 /**
  * Create a new fragment for the authenticated user.
  * @param {Object} user - The authenticated user
- * @param {string|ArrayBuffer} content - The content of the fragment
+ * @param {string|ArrayBuffer|Blob} content - The content of the fragment
  * @param {string} type - MIME type (e.g., "text/plain", "application/json")
  * @returns {Object|null} The JSON response from the API or null on error
  */
 export async function createFragment(user, content, type = "text/plain") {
   try {
+    console.log(`🚀 Creating fragment with type: ${type}, content type: ${typeof content}`);
+    
     const res = await fetch(`${apiUrl}/v1/fragments`, {
       method: "POST",
       headers: {
-        ...user.authorizationHeaders(),
+        ...user.authorizationHeaders(type),
         "Content-Type": type,
       },
       body: content,
     });
 
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return await res.json();
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`❌ API Error: ${res.status} ${res.statusText}`, errorText);
+      throw new Error(`${res.status} ${res.statusText}: ${errorText}`);
+    }
+    
+    const result = await res.json();
+    console.log("✅ Fragment created successfully:", result);
+    return result;
   } catch (err) {
     console.error("❌ POST /v1/fragments failed", err);
-    return null;
+    throw err; // Re-throw to let the UI handle the error
   }
 }
 

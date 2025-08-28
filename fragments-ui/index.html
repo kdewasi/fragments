@@ -3,132 +3,1049 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fragments UI</title>
-    <link rel="stylesheet" href="https://unpkg.com/bamboo.css" />
-
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#2196f3" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Fragments" />
-
-    <!-- PWA Icons -->
+    <title>Fragments - Cloud Microservice</title>
     <link
-      rel="apple-touch-icon"
-      href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSIyNCIgZmlsbD0iIzIxOTZGMyIvPjxzdmcgeD0iNDgiIHk9IjQ4IiB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xNCAySDZhMiAyIDAgMCAwLTIgMnYxNmEyIDIgMCAwIDAgMiAyaDEyYTIgMiAwIDAgMCAyLTJWOGwtNi02eiIvPjxwYXRoIGQ9Ik0xNCAydjZoNk0xNiAxM0g2YTIgMiAwIDAgMC0yIDJ2NWEyIDIgMCAwIDAgMiAyaDEwYTIgMiAwIDAgMCAyLTJ2LTVhMiAyIDAgMCAwLTItMnoiLz48L3N2Zz48L3N2Zz4="
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
     />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1a202c" />
+
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        /* Premium Dark Theme Colors */
+        --bg-primary: #0d1117;
+        --bg-secondary: #161b22;
+        --bg-tertiary: #21262d;
+        --bg-elevated: #2d333b;
+        --bg-overlay: #1c2128;
+
+        /* Accent Colors */
+        --accent-primary: #58a6ff;
+        --accent-secondary: #f85149;
+        --accent-success: #3fb950;
+        --accent-warning: #d29922;
+        --accent-purple: #a855f7;
+        --accent-cyan: #39d0d8;
+
+        /* Text Colors */
+        --text-primary: #f0f6fc;
+        --text-secondary: #8b949e;
+        --text-muted: #6e7681;
+        --text-disabled: #484f58;
+
+        /* Border Colors */
+        --border-primary: #30363d;
+        --border-secondary: #21262d;
+        --border-accent: #58a6ff;
+
+        /* Shadow Colors */
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+        --shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.5);
+        --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.6);
+
+        /* Gradients */
+        --gradient-primary: linear-gradient(
+          135deg,
+          var(--accent-primary) 0%,
+          var(--accent-purple) 100%
+        );
+        --gradient-secondary: linear-gradient(
+          135deg,
+          var(--bg-secondary) 0%,
+          var(--bg-tertiary) 100%
+        );
+        --gradient-surface: linear-gradient(
+          135deg,
+          var(--bg-elevated) 0%,
+          var(--bg-tertiary) 100%
+        );
+
+        /* Spacing */
+        --spacing-xs: 0.5rem;
+        --spacing-sm: 0.75rem;
+        --spacing: 1rem;
+        --spacing-lg: 1.5rem;
+        --spacing-xl: 2rem;
+        --spacing-2xl: 3rem;
+
+        /* Border Radius */
+        --radius-sm: 0.375rem;
+        --radius: 0.5rem;
+        --radius-lg: 0.75rem;
+        --radius-xl: 1rem;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          system-ui, sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        overflow-x: hidden;
+        line-height: 1.6;
+        font-weight: 400;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* Main App Layout */
+      .app-layout {
+        display: flex;
+        min-height: 100vh;
+        width: 100%;
+        background: var(--bg-primary);
+      }
+
+      /* LEFT SIDEBAR */
+      .sidebar {
+        width: 380px;
+        background: var(--gradient-secondary);
+        border-right: 1px solid var(--border-primary);
+        padding: var(--spacing-xl);
+        overflow-y: auto;
+        flex-shrink: 0;
+        position: relative;
+      }
+
+      .sidebar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="%23ffffff" opacity="0.02"/><circle cx="75" cy="75" r="1" fill="%23ffffff" opacity="0.02"/><circle cx="50" cy="10" r="1" fill="%23ffffff" opacity="0.02"/><circle cx="10" cy="90" r="1" fill="%23ffffff" opacity="0.02"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grain)"/></svg>');
+        pointer-events: none;
+      }
+
+      /* MAIN CONTENT AREA */
+      .main-content {
+        flex: 1;
+        padding: var(--spacing-xl);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xl);
+        background: var(--bg-primary);
+      }
+
+      /* Header Section */
+      .header {
+        text-align: center;
+        margin-bottom: var(--spacing-xl);
+        padding: var(--spacing-2xl) var(--spacing-xl);
+        background: var(--gradient-surface);
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--border-primary);
+        box-shadow: var(--shadow-lg);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: var(--gradient-primary);
+      }
+
+      .header h1 {
+        font-size: 2.25rem;
+        font-weight: 800;
+        margin-bottom: var(--spacing-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing);
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .header p {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+        letter-spacing: 0.025em;
+      }
+
+      /* Auth Section */
+      .auth-section {
+        margin-bottom: var(--spacing-xl);
+        position: relative;
+        z-index: 1;
+      }
+
+      .auth-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing);
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .user-info {
+        background: var(--gradient-surface);
+        border: 1px solid var(--border-primary);
+        padding: var(--spacing-lg);
+        border-radius: var(--radius-lg);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .user-info::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          var(--accent-success) 0%,
+          var(--accent-cyan) 100%
+        );
+      }
+
+      .user-info h3 {
+        margin-bottom: var(--spacing-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-sm);
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .user-info p {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+      }
+
+      /* Cards */
+      .card {
+        background: var(--gradient-surface);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        border: 1px solid var(--border-primary);
+        box-shadow: var(--shadow-lg);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: fit-content;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: var(--gradient-primary);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-xl);
+        border-color: var(--border-accent);
+      }
+
+      .card:hover::before {
+        opacity: 1;
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing);
+        margin-bottom: var(--spacing-xl);
+        padding-bottom: var(--spacing-lg);
+        border-bottom: 1px solid var(--border-primary);
+      }
+
+      .card-header h2 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+        letter-spacing: -0.025em;
+      }
+
+      .card-header i {
+        font-size: 1.25rem;
+        color: var(--accent-primary);
+        background: rgba(88, 166, 255, 0.1);
+        padding: var(--spacing-sm);
+        border-radius: var(--radius);
+        border: 1px solid rgba(88, 166, 255, 0.2);
+      }
+
+      /* Fragment List in Sidebar */
+      .fragments-sidebar {
+        background: var(--gradient-surface);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-lg);
+        margin-top: var(--spacing-xl);
+        border: 1px solid var(--border-primary);
+        box-shadow: var(--shadow);
+        position: relative;
+        z-index: 1;
+      }
+
+      .fragments-sidebar h3 {
+        margin-bottom: var(--spacing);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 1rem;
+      }
+
+      .fragment-list {
+        max-height: 350px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-primary) transparent;
+      }
+
+      .fragment-list::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .fragment-list::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .fragment-list::-webkit-scrollbar-thumb {
+        background: var(--border-primary);
+        border-radius: 2px;
+      }
+
+      .fragment-item {
+        background: var(--bg-elevated);
+        padding: var(--spacing);
+        border-radius: var(--radius);
+        margin-bottom: var(--spacing-sm);
+        border: 1px solid var(--border-secondary);
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+
+      .fragment-item:hover {
+        background: var(--bg-overlay);
+        border-color: var(--border-accent);
+        transform: translateX(4px);
+      }
+
+      .fragment-id {
+        font-family: "JetBrains Mono", "Courier New", monospace;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: var(--spacing-xs);
+        word-break: break-all;
+      }
+
+      .fragment-type {
+        background: rgba(88, 166, 255, 0.15);
+        color: var(--accent-primary);
+        padding: 0.25rem var(--spacing-sm);
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-block;
+        border: 1px solid rgba(88, 166, 255, 0.3);
+      }
+
+      /* Main Content Grid */
+      .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-xl);
+        flex: 1;
+      }
+
+      /* Form Elements */
+      .form-group {
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: var(--spacing-sm);
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        letter-spacing: 0.025em;
+        text-transform: uppercase;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: var(--spacing) var(--spacing-lg);
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-primary);
+        border-radius: var(--radius);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        font-family: inherit;
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        background: var(--bg-overlay);
+        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+      }
+
+      .form-control::placeholder {
+        color: var(--text-disabled);
+      }
+
+      textarea.form-control {
+        resize: vertical;
+        min-height: 120px;
+        font-family: "JetBrains Mono", "Courier New", monospace;
+        line-height: 1.5;
+      }
+
+      select.form-control {
+        cursor: pointer;
+      }
+
+      /* Buttons */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing) var(--spacing-lg);
+        border: none;
+        border-radius: var(--radius);
+        font-weight: 600;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+        font-family: inherit;
+        letter-spacing: 0.025em;
+      }
+
+      .btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.1),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      .btn:hover::before {
+        left: 100%;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .btn-primary {
+        background: var(--gradient-primary);
+        color: white;
+        box-shadow: var(--shadow);
+      }
+
+      .btn-primary:hover {
+        box-shadow: 0 8px 25px rgba(88, 166, 255, 0.4);
+      }
+
+      .btn-success {
+        background: linear-gradient(
+          135deg,
+          var(--accent-success) 0%,
+          #2ea043 100%
+        );
+        color: white;
+        box-shadow: var(--shadow);
+      }
+
+      .btn-success:hover {
+        box-shadow: 0 8px 25px rgba(63, 185, 80, 0.4);
+      }
+
+      .btn-danger {
+        background: linear-gradient(
+          135deg,
+          var(--accent-secondary) 0%,
+          #da3633 100%
+        );
+        color: white;
+        box-shadow: var(--shadow);
+      }
+
+      .btn-danger:hover {
+        box-shadow: 0 8px 25px rgba(248, 81, 73, 0.4);
+      }
+
+      .btn-warning {
+        background: linear-gradient(
+          135deg,
+          var(--accent-warning) 0%,
+          #bf8700 100%
+        );
+        color: white;
+        box-shadow: var(--shadow);
+      }
+
+      .btn-warning:hover {
+        box-shadow: 0 8px 25px rgba(210, 153, 34, 0.4);
+      }
+
+      .btn-secondary {
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-primary);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .btn-secondary:hover {
+        background: var(--bg-overlay);
+        color: var(--text-primary);
+        border-color: var(--border-accent);
+      }
+
+      .btn-group {
+        display: flex;
+        gap: var(--spacing-sm);
+        margin-top: var(--spacing);
+        flex-wrap: wrap;
+      }
+
+      .btn-group .btn {
+        flex: 1;
+        min-width: 120px;
+        padding: var(--spacing-sm) var(--spacing);
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .btn-group .btn i {
+        font-size: 0.875rem;
+      }
+
+      /* File Upload */
+      .file-upload {
+        position: relative;
+        margin-top: var(--spacing);
+      }
+
+      .file-input {
+        display: none;
+      }
+
+      .file-drop-zone {
+        border: 2px dashed var(--border-primary);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-xl);
+        text-align: center;
+        background: var(--bg-elevated);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .file-drop-zone::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(
+          circle at center,
+          rgba(88, 166, 255, 0.05) 0%,
+          transparent 70%
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .file-drop-zone:hover,
+      .file-drop-zone.dragover {
+        border-color: var(--accent-primary);
+        background: var(--bg-overlay);
+      }
+
+      .file-drop-zone:hover::before,
+      .file-drop-zone.dragover::before {
+        opacity: 1;
+      }
+
+      .file-drop-zone i {
+        font-size: 2rem;
+        color: var(--accent-primary);
+        margin-bottom: var(--spacing);
+        position: relative;
+        z-index: 1;
+      }
+
+      .file-drop-zone p {
+        color: var(--text-secondary);
+        margin: 0;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Results Section */
+      .results-section {
+        background: var(--gradient-surface);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        border: 1px solid var(--border-primary);
+        box-shadow: var(--shadow-lg);
+        margin-top: var(--spacing-xl);
+      }
+
+      .results-content {
+        background: var(--bg-primary);
+        border-radius: var(--radius);
+        padding: var(--spacing-lg);
+        min-height: 200px;
+        font-family: "JetBrains Mono", "Courier New", monospace;
+        font-size: 0.875rem;
+        border: 1px solid var(--border-secondary);
+        overflow-x: auto;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      /* Alert Messages */
+      .alert {
+        padding: var(--spacing);
+        border-radius: var(--radius);
+        margin: var(--spacing) 0;
+        font-weight: 500;
+        display: none;
+        border: 1px solid;
+      }
+
+      .alert.show {
+        display: block;
+        animation: slideIn 0.3s ease;
+      }
+
+      .alert-success {
+        background: rgba(63, 185, 80, 0.1);
+        border-color: var(--accent-success);
+        color: var(--accent-success);
+      }
+
+      .alert-error {
+        background: rgba(248, 81, 73, 0.1);
+        border-color: var(--accent-secondary);
+        color: var(--accent-secondary);
+      }
+
+      /* Status Indicators */
+      .status-bar {
+        background: rgba(210, 153, 34, 0.1);
+        border: 1px solid var(--accent-warning);
+        color: var(--accent-warning);
+        padding: var(--spacing);
+        border-radius: var(--radius);
+        text-align: center;
+        margin-bottom: var(--spacing-lg);
+        display: none;
+        font-weight: 500;
+      }
+
+      /* Animations */
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Loading States */
+      .loading {
+        opacity: 0.7;
+        pointer-events: none;
+      }
+
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border-primary);
+        border-top: 2px solid var(--accent-primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Responsive Design */
+      @media (max-width: 1200px) {
+        .sidebar {
+          width: 320px;
+        }
+
+        .content-grid {
+          grid-template-columns: 1fr;
+          gap: var(--spacing-lg);
+        }
+      }
+
+      @media (max-width: 968px) {
+        .app-layout {
+          flex-direction: column;
+        }
+
+        .sidebar {
+          width: 100%;
+          padding: var(--spacing-lg);
+        }
+
+        .main-content {
+          padding: var(--spacing-lg);
+        }
+
+        .content-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+          flex-direction: column;
+          gap: var(--spacing-sm);
+        }
+      }
+
+      @media (max-width: 640px) {
+        .sidebar,
+        .main-content {
+          padding: var(--spacing);
+        }
+
+        .card {
+          padding: var(--spacing-lg);
+        }
+
+        .btn-group {
+          flex-direction: column;
+          gap: var(--spacing-sm);
+        }
+
+        .btn-group .btn {
+          min-width: auto;
+          width: 100%;
+        }
+
+        .auth-buttons {
+          gap: var(--spacing-sm);
+        }
+
+        .header {
+          padding: var(--spacing-lg);
+        }
+
+        .header h1 {
+          font-size: 1.75rem;
+        }
+      }
+
+      /* Custom Scrollbars */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-secondary);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-primary);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--border-accent);
+      }
+    </style>
   </head>
   <body>
-    <h1>Fragments UI</h1>
+    <div class="app-layout">
+      <!-- LEFT SIDEBAR -->
+      <div class="sidebar">
+        <!-- Auth Section -->
+        <div class="auth-section">
+          <div class="auth-buttons">
+            <button id="login" class="btn btn-secondary">
+              <i class="fas fa-sign-in-alt"></i>
+              Sign In (Basic Auth)
+            </button>
+            <button id="logout" class="btn btn-danger" hidden>
+              <i class="fas fa-sign-out-alt"></i>
+              Sign Out
+            </button>
+            <button id="install-pwa" class="btn btn-success" hidden>
+              <i class="fas fa-download"></i>
+              Install App
+            </button>
+          </div>
 
-    <!-- Offline Status Indicator -->
-    <div
-      id="offline-indicator"
-      style="
-        display: none;
-        background: #ff9800;
-        color: white;
-        padding: 8px;
-        text-align: center;
-        font-weight: bold;
-      "
-    >
-      📱 Offline Mode - Some features may be limited
+          <div id="offline-indicator" class="status-bar">
+            <i class="fas fa-wifi-slash"></i>
+            📱 Offline Mode Active
+          </div>
+
+          <div id="user" class="user-info" hidden>
+            <h3>
+              <i class="fas fa-user-check"></i>
+              Hello <span class="username"></span>!
+            </h3>
+            <p>✅ Authenticated via HTTP Basic Auth</p>
+          </div>
+        </div>
+
+        <!-- Fragment Actions -->
+        <div class="card">
+          <div class="card-header">
+            <i class="fas fa-bolt"></i>
+            <h2>Quick Actions</h2>
+          </div>
+
+          <button id="load-fragments" class="btn btn-primary">
+            <i class="fas fa-refresh"></i>
+            Load My Fragments
+          </button>
+
+          <div class="form-group">
+            <label class="form-label" for="fragment-id">Fragment ID</label>
+            <input
+              type="text"
+              id="fragment-id"
+              class="form-control"
+              placeholder="Enter fragment ID..."
+            />
+          </div>
+
+          <div class="btn-group">
+            <button id="view-fragment" class="btn btn-primary">
+              <i class="fas fa-eye"></i>
+              View
+            </button>
+            <button id="delete-fragment" class="btn btn-danger">
+              <i class="fas fa-trash"></i>
+              Delete
+            </button>
+            <button id="update-fragment" class="btn btn-warning">
+              <i class="fas fa-edit"></i>
+              Update
+            </button>
+          </div>
+        </div>
+
+        <!-- Fragment List -->
+        <div class="fragments-sidebar">
+          <h3>
+            <i class="fas fa-list"></i>
+            Your Fragments
+          </h3>
+          <div id="fragment-list" class="fragment-list">
+            <p
+              style="
+                color: var(--text-muted);
+                text-align: center;
+                padding: 2rem;
+              "
+            >
+              Click "Load My Fragments" to see your data
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN CONTENT AREA -->
+      <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+          <h1>
+            <i class="fas fa-puzzle-piece"></i>
+            Fragments Manager
+          </h1>
+          <p>
+            Create, manage, and convert your content fragments with
+            enterprise-grade security
+          </p>
+        </div>
+
+        <!-- Main Content Grid - Side by Side -->
+        <div class="content-grid">
+          <!-- CREATE FRAGMENT CARD -->
+          <div class="card">
+            <div class="card-header">
+              <i class="fas fa-plus-circle"></i>
+              <h2>Create Fragment</h2>
+            </div>
+
+            <form id="create-form">
+              <div class="form-group">
+                <label class="form-label" for="type">Content Type</label>
+                <select id="type" class="form-control">
+                  <option value="text/plain">📄 Plain Text</option>
+                  <option value="text/markdown">📝 Markdown</option>
+                  <option value="text/html">🌐 HTML</option>
+                  <option value="text/csv">📊 CSV</option>
+                  <option value="application/json">📋 JSON</option>
+                  <option value="application/yaml">⚙️ YAML</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="content">Content</label>
+                <textarea
+                  id="content"
+                  class="form-control"
+                  placeholder="Enter your fragment content here..."
+                  rows="6"
+                ></textarea>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Or Upload Image</label>
+                <div class="file-upload">
+                  <input
+                    type="file"
+                    id="image-input"
+                    class="file-input"
+                    accept="image/*"
+                    style="display: none"
+                  />
+                  <div
+                    class="file-drop-zone"
+                    onclick="document.getElementById('image-input').click()"
+                  >
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Click to select or drag & drop an image</p>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i>
+                Create Fragment
+              </button>
+
+              <div id="post-result" class="alert"></div>
+            </form>
+          </div>
+
+          <!-- FORMAT CONVERSION CARD -->
+          <div class="card">
+            <div class="card-header">
+              <i class="fas fa-exchange-alt"></i>
+              <h2>Format Conversions</h2>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="conversion-fragment-id"
+                >Fragment ID</label
+              >
+              <input
+                type="text"
+                id="conversion-fragment-id"
+                class="form-control"
+                placeholder="Enter fragment ID to convert..."
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="conversion-format"
+                >Convert To</label
+              >
+              <select id="conversion-format" class="form-control">
+                <option value="txt">📄 Plain Text (.txt)</option>
+                <option value="html">🌐 HTML (.html)</option>
+                <option value="json">📋 JSON (.json)</option>
+                <option value="yaml">⚙️ YAML (.yaml)</option>
+                <option value="png">🖼️ PNG (.png)</option>
+                <option value="jpeg">📸 JPEG (.jpeg)</option>
+                <option value="webp">🎨 WebP (.webp)</option>
+              </select>
+            </div>
+
+            <button id="convert-fragment" class="btn btn-primary">
+              <i class="fas fa-magic"></i>
+              Convert Fragment
+            </button>
+          </div>
+        </div>
+
+        <!-- RESULTS SECTION - Full width -->
+        <div class="results-section">
+          <div class="card-header">
+            <i class="fas fa-chart-line"></i>
+            <h2>Results & Output</h2>
+          </div>
+          <div id="result-content" class="results-content">
+            <p
+              style="
+                color: var(--text-muted);
+                text-align: center;
+                padding: 2rem;
+              "
+            >
+              <i class="fas fa-info-circle" style="margin-right: 0.5rem"></i>
+              Results and API responses will appear here...
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <section>
-      <nav>
-        <button id="login">Sign In with Cognito</button>
-        <button id="logout" hidden>Sign Out</button>
-        <button
-          id="install-pwa"
-          hidden
-          style="background: #4caf50; color: white; margin-left: 10px"
-        >
-          📱 Install App
-        </button>
-      </nav>
-    </section>
-
-    <section hidden id="user">
-      <h2>Hello <span class="username"></span>!</h2>
-      <p>✅ Authenticated via Amazon Cognito</p>
-    </section>
-
-    <h2>Create a Fragment</h2>
-    <form id="create-form">
-      <label for="type">Type:</label>
-      <select id="type">
-        <option value="text/plain">text/plain</option>
-        <option value="text/markdown">text/markdown</option>
-        <option value="text/html">text/html</option>
-        <option value="text/csv">text/csv</option>
-        <option value="application/json">application/json</option>
-        <option value="application/yaml">application/yaml</option>
-      </select>
-      <br />
-      <label for="content">Content:</label><br />
-      <textarea
-        id="content"
-        rows="6"
-        cols="50"
-        placeholder="Enter your fragment content here..."
-      ></textarea
-      ><br />
-
-      <h3>Or Upload an Image:</h3>
-      <input type="file" id="image-input" accept="image/*" />
-      <br /><br />
-
-      <button type="submit">Create Fragment</button>
-    </form>
-    <div id="post-result" style="margin-top: 1rem"></div>
-
-    <h2>Your Fragments</h2>
-    <button id="load-fragments">Load My Fragments</button>
-    <div id="fragment-list"></div>
-
-    <h2>Fragment Actions</h2>
-    <div id="fragment-actions" style="margin-top: 1rem">
-      <input type="text" id="fragment-id" placeholder="Fragment ID" />
-      <button id="view-fragment">View Fragment</button>
-      <button id="delete-fragment">Delete Fragment</button>
-      <button id="update-fragment">Update Fragment</button>
-    </div>
-
-    <h2>Format Conversions</h2>
-    <div id="conversion-actions" style="margin-top: 1rem">
-      <input
-        type="text"
-        id="conversion-fragment-id"
-        placeholder="Fragment ID"
-      />
-      <select id="conversion-format">
-        <option value="txt">Plain Text (.txt)</option>
-        <option value="html">HTML (.html)</option>
-        <option value="json">JSON (.json)</option>
-        <option value="yaml">YAML (.yaml)</option>
-        <option value="png">PNG (.png)</option>
-        <option value="jpeg">JPEG (.jpeg)</option>
-        <option value="webp">WebP (.webp)</option>
-      </select>
-      <button id="convert-fragment">Convert Fragment</button>
-    </div>
-
-    <div
-      id="result-display"
-      style="
-        margin-top: 2rem;
-        padding: 1rem;
-        border: 1px solid #ccc;
-        min-height: 100px;
-      "
-    >
-      <h3>Results:</h3>
-      <div id="result-content"></div>
-    </div>
-
-    <script type="module" src="./src/app.js"></script>
+    <script type="module" src="src/app.js"></script>
   </body>
 </html>

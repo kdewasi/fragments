@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🔄 Test Fragment Conversion</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .test-section {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      .success {
+        color: green;
+        font-weight: bold;
+      }
+      .error {
+        color: red;
+        font-weight: bold;
+      }
+      button {
+        padding: 10px 15px;
+        margin: 5px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      textarea {
+        width: 100%;
+        height: 80px;
+        margin: 10px 0;
+      }
+      pre {
+        background: #f5f5f5;
+        padding: 10px;
+        border-radius: 3px;
+        overflow-x: auto;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .result {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔄 Fragment Conversion Test</h1>
+    <p>
+      This tests if your fragments API conversion functionality is working
+      properly.
+    </p>
+
+    <div class="test-section">
+      <h3>1. 📝 Create Test Markdown Fragment</h3>
+      <textarea id="markdownContent" placeholder="Markdown content...">
+# Test Conversion
+This is a **markdown** fragment for testing conversions.
+
+## Features
+- Text formatting
+- Lists
+- **Bold** and *italic* text
+
+Testing conversion to HTML!
+        </textarea
+      >
+      <button onclick="createMarkdownFragment()">
+        Create Markdown Fragment
+      </button>
+      <div id="markdown-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>2. 🔄 Test Markdown → HTML Conversion</h3>
+      <input
+        type="text"
+        id="fragmentId"
+        placeholder="Fragment ID"
+        style="width: 300px; padding: 5px"
+      />
+      <button onclick="testMarkdownToHtml()">Convert to HTML</button>
+      <div id="conversion-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>3. 📊 Create JSON Fragment</h3>
+      <textarea id="jsonContent" placeholder="JSON content...">
+{
+  "test": "conversion",
+  "type": "JSON to YAML",
+  "features": ["validation", "conversion", "formatting"],
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+        </textarea
+      >
+      <button onclick="createJsonFragment()">Create JSON Fragment</button>
+      <div id="json-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>4. 🔄 Test JSON → YAML Conversion</h3>
+      <input
+        type="text"
+        id="jsonFragmentId"
+        placeholder="JSON Fragment ID"
+        style="width: 300px; padding: 5px"
+      />
+      <button onclick="testJsonToYaml()">Convert to YAML</button>
+      <div id="yaml-conversion-result" class="result"></div>
+    </div>
+
+    <script>
+      const API_URL =
+        "http://fragments-alb-1899681317.us-east-1.elb.amazonaws.com";
+
+      const TEST_USER = {
+        authorizationHeaders: (type = "application/json") => ({
+          "Content-Type": type,
+          Authorization: `Basic ${btoa(
+            "kishandewasi606@gmail.com:Jckzwtjh7d"
+          )}`,
+        }),
+      };
+
+      async function createMarkdownFragment() {
+        const content = document.getElementById("markdownContent").value;
+        const resultDiv = document.getElementById("markdown-result");
+
+        resultDiv.innerHTML = "⏳ Creating markdown fragment...";
+
+        try {
+          const response = await fetch(`${API_URL}/v1/fragments`, {
+            method: "POST",
+            headers: {
+              ...TEST_USER.authorizationHeaders("text/markdown"),
+              "Content-Type": "text/markdown",
+            },
+            body: content,
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const fragmentId = data.fragment.id;
+
+            // Auto-fill the conversion input
+            document.getElementById("fragmentId").value = fragmentId;
+
+            resultDiv.innerHTML = `
+                        <div class="success">✅ Markdown fragment created!</div>
+                        <pre>Fragment ID: ${fragmentId}
+Type: ${data.fragment.type}
+Size: ${data.fragment.size} bytes</pre>
+                    `;
+          } else {
+            const errorText = await response.text();
+            resultDiv.innerHTML = `<div class="error">❌ Failed: ${response.status} ${response.statusText}<br>${errorText}</div>`;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+        }
+      }
+
+      async function testMarkdownToHtml() {
+        const fragmentId = document.getElementById("fragmentId").value.trim();
+        const resultDiv = document.getElementById("conversion-result");
+
+        if (!fragmentId) {
+          resultDiv.innerHTML =
+            '<div class="error">❌ Please enter a fragment ID</div>';
+          return;
+        }
+
+        resultDiv.innerHTML = "⏳ Converting markdown to HTML...";
+
+        try {
+          const response = await fetch(
+            `${API_URL}/v1/fragments/${fragmentId}.html`,
+            {
+              headers: TEST_USER.authorizationHeaders(),
+            }
+          );
+
+          if (response.ok) {
+            const htmlContent = await response.text();
+            resultDiv.innerHTML = `
+                        <div class="success">✅ Conversion successful!</div>
+                        <strong>Original Markdown converted to HTML:</strong>
+                        <pre>${htmlContent}</pre>
+                        <strong>Rendered HTML:</strong>
+                        <div style="border: 1px solid #ccc; padding: 10px; margin-top: 10px; background: white;">
+                            ${htmlContent}
+                        </div>
+                    `;
+          } else {
+            const errorText = await response.text();
+            resultDiv.innerHTML = `<div class="error">❌ Conversion failed: ${response.status} ${response.statusText}<br>${errorText}</div>`;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+        }
+      }
+
+      async function createJsonFragment() {
+        const content = document.getElementById("jsonContent").value;
+        const resultDiv = document.getElementById("json-result");
+
+        resultDiv.innerHTML = "⏳ Creating JSON fragment...";
+
+        try {
+          // Validate JSON first
+          JSON.parse(content);
+
+          const response = await fetch(`${API_URL}/v1/fragments`, {
+            method: "POST",
+            headers: {
+              ...TEST_USER.authorizationHeaders("application/json"),
+              "Content-Type": "application/json",
+            },
+            body: content,
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const fragmentId = data.fragment.id;
+
+            // Auto-fill the conversion input
+            document.getElementById("jsonFragmentId").value = fragmentId;
+
+            resultDiv.innerHTML = `
+                        <div class="success">✅ JSON fragment created!</div>
+                        <pre>Fragment ID: ${fragmentId}
+Type: ${data.fragment.type}
+Size: ${data.fragment.size} bytes</pre>
+                    `;
+          } else {
+            const errorText = await response.text();
+            resultDiv.innerHTML = `<div class="error">❌ Failed: ${response.status} ${response.statusText}<br>${errorText}</div>`;
+          }
+        } catch (error) {
+          if (error instanceof SyntaxError) {
+            resultDiv.innerHTML = `<div class="error">❌ Invalid JSON: ${error.message}</div>`;
+          } else {
+            resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+          }
+        }
+      }
+
+      async function testJsonToYaml() {
+        const fragmentId = document
+          .getElementById("jsonFragmentId")
+          .value.trim();
+        const resultDiv = document.getElementById("yaml-conversion-result");
+
+        if (!fragmentId) {
+          resultDiv.innerHTML =
+            '<div class="error">❌ Please enter a JSON fragment ID</div>';
+          return;
+        }
+
+        resultDiv.innerHTML = "⏳ Converting JSON to YAML...";
+
+        try {
+          const response = await fetch(
+            `${API_URL}/v1/fragments/${fragmentId}.yaml`,
+            {
+              headers: TEST_USER.authorizationHeaders(),
+            }
+          );
+
+          if (response.ok) {
+            const yamlContent = await response.text();
+            resultDiv.innerHTML = `
+                        <div class="success">✅ JSON → YAML conversion successful!</div>
+                        <strong>Converted YAML:</strong>
+                        <pre>${yamlContent}</pre>
+                    `;
+          } else {
+            const errorText = await response.text();
+            resultDiv.innerHTML = `<div class="error">❌ Conversion failed: ${response.status} ${response.statusText}<br>${errorText}</div>`;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+        }
+      }
+    </script>
+  </body>
+</html>
+

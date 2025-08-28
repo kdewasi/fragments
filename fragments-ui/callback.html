@@ -48,24 +48,9 @@
     </div>
 
     <script type="module">
-      import { handleCallback } from "./src/auth.js";
-
-      async function processCallback() {
-        try {
-          await handleCallback();
-          // Redirect to main app
-          window.location.href = "/";
-        } catch (error) {
-          console.error("Authentication failed:", error);
-          document.querySelector(".container").innerHTML = `
-                    <h2>Authentication Failed</h2>
-                    <p>There was an error signing you in. Please try again.</p>
-                    <button onclick="window.location.href='/'">Return to App</button>
-                `;
-        }
-      }
-
-      processCallback();
+      // Basic Auth doesn't need callback handling
+      console.log("Redirecting to main app...");
+      window.location.href = "/";
     </script>
   </body>
 </html>

@@ -16,6 +16,8 @@
     "oidc-client-ts": "^3.2.1"
   },
   "devDependencies": {
+    "@parcel/packager-raw-url": "^2.15.4",
+    "@parcel/transformer-webmanifest": "^2.15.4",
     "eslint": "^9.28.0",
     "parcel": "^2.15.4"
   },
