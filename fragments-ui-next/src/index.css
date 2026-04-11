@@ -1,0 +1,5 @@
+/* Minimal global styles — everything else is component-scoped */
+body {
+  margin: 0;
+  padding: 0;
+}
