@@ -1,25 +1,19 @@
 const { Fragment } = require('../../model/fragment');
+const { createSuccessResponse, createErrorResponse } = require('../../response');
+const logger = require('../../logger');
 
-module.exports = async (req, res) => {
+module.exports = async (req, res, next) => {
   const ownerId = req.user;
   const expand = req.query.expand === '1';
 
   try {
-    console.log('📦 ownerId:', ownerId);
-    console.log('🧩 expand:', expand);
+    logger.debug({ ownerId, expand }, 'GET /fragments request');
 
     const fragments = await Fragment.byUser(ownerId, expand);
-    console.log('✅ Retrieved fragments:', fragments);
+    logger.debug({ count: fragments.length }, 'Fragments retrieved');
 
-    res.status(200).json({
-      status: 'ok',
-      fragments,
-    });
+    res.status(200).json(createSuccessResponse({ fragments }));
   } catch (err) {
-    console.error('❌ Error in GET /fragments:', err);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to retrieve fragments',
-    });
+    next(err);
   }
 };

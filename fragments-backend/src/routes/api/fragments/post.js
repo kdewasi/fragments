@@ -2,10 +2,10 @@
 
 const { Fragment } = require('../../../model/fragment');
 const { createSuccessResponse, createErrorResponse } = require('../../../response');
+const logger = require('../../../logger');
 
-module.exports = async (req, res) => {
+module.exports = async (req, res, next) => {
   try {
-    // ✅ Parse and validate Content-Type header
     const contentTypeHeader = req.get('Content-Type');
     if (!contentTypeHeader) {
       return res.status(400).json(createErrorResponse(400, 'Content-Type header is required'));
@@ -17,27 +17,25 @@ module.exports = async (req, res) => {
         .json(createErrorResponse(415, `Unsupported Content-Type: ${contentTypeHeader}`));
     }
 
-    // ✅ Ensure request body is a raw Buffer
     if (!Buffer.isBuffer(req.body)) {
       return res.status(400).json(createErrorResponse(400, 'Invalid or missing request body'));
     }
 
-    // ✅ Extract ownerId (either user object or string)
     const user = req.user;
     const ownerId = typeof user === 'object' ? user.email : user;
 
-    // ✅ Create and save the fragment
     const fragment = new Fragment({ ownerId, type: contentTypeHeader, size: req.body.length });
     await fragment.setData(req.body);
 
-    // ✅ Build Location header
     const host = process.env.API_URL || `http://${req.headers.host}`;
     const location = new URL(`/v1/fragments/${fragment.id}`, host);
+
+    logger.debug({ fragmentId: fragment.id, type: contentTypeHeader, size: req.body.length }, 'Fragment created');
 
     res.setHeader('Location', location.href);
     return res.status(201).json(createSuccessResponse({ fragment }));
   } catch (err) {
-    console.error('❌ POST /fragments failed:', err);
-    return res.status(500).json(createErrorResponse(500, 'Internal Server Error'));
+    next(err);
   }
 };
+

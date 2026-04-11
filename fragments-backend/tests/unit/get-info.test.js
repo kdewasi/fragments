@@ -8,8 +8,8 @@ describe('GET /v1/fragments/:id/info', () => {
   test('unauthenticated requests are denied', () =>
     request(app).get('/v1/fragments/123/info').expect(401));
 
-  test('non-existent fragment returns 500', () =>
-    request(app).get('/v1/fragments/non-existent-id/info').auth(user, pass).expect(500));
+  test('non-existent fragment returns 404', () =>
+    request(app).get('/v1/fragments/non-existent-id/info').auth(user, pass).expect(404));
 
   test('gets fragment info for existing fragment', async () => {
     // First create a fragment

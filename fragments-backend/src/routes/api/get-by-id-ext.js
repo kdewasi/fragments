@@ -1,4 +1,6 @@
 const { Fragment } = require('../../model/fragment');
+const { createErrorResponse } = require('../../response');
+const logger = require('../../logger');
 const MarkdownIt = require('markdown-it');
 const sharp = require('sharp');
 const yaml = require('js-yaml');
@@ -24,27 +26,31 @@ function getTargetType(ext) {
   return extensionMap[ext.toLowerCase()];
 }
 
-module.exports = async (req, res) => {
+module.exports = async (req, res, next) => {
   const { id, ext } = req.params;
-
-  // ✅ Correctly extract ownerId for both Cognito (object) and Basic Auth (string)
   const ownerId = typeof req.user === 'object' ? req.user.sub || req.user.id : req.user;
 
   try {
-    const fragment = await Fragment.byId(ownerId, id);
+    let fragment;
+    try {
+      fragment = await Fragment.byId(ownerId, id);
+    } catch {
+      return res.status(404).json(createErrorResponse(404, `Fragment ${id} not found`));
+    }
+
     const data = await fragment.getData();
 
     // Get the target MIME type based on extension
     const targetType = getTargetType(ext);
     if (!targetType) {
-      return res.status(400).json({ error: `Unsupported conversion extension: .${ext}` });
+      return res.status(400).json(createErrorResponse(400, `Unsupported conversion extension: .${ext}`));
     }
 
     // Check if conversion is supported
     if (!fragment.formats.includes(targetType)) {
-      return res.status(415).json({
-        error: `Cannot convert ${fragment.type} to ${targetType}`,
-      });
+      return res.status(415).json(
+        createErrorResponse(415, `Cannot convert ${fragment.type} to ${targetType}`)
+      );
     }
 
     let convertedData;
@@ -83,14 +89,13 @@ module.exports = async (req, res) => {
       contentType = fragment.type;
     }
 
+    logger.debug({ fragmentId: id, from: fragment.type, to: contentType }, 'Fragment converted');
+
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Length', convertedData.length);
     res.status(200).send(convertedData);
   } catch (err) {
-    console.error('❌ get-by-id-ext error:', err);
-    res.status(404).json({
-      status: 'error',
-      error: 'Fragment not found or conversion failed',
-    });
+    next(err);
   }
 };
+
