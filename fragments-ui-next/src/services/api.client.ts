@@ -31,11 +31,13 @@ interface ApiClientConfig {
 }
 
 /**
- * Build the Authorization header for Basic Auth.
- * In production, this would use a Cognito Bearer token instead.
+ * Build the Authorization header.
+ * Detects token type: Base64 Basic Auth tokens vs Cognito Bearer (JWT) tokens.
+ * JWTs contain dots (header.payload.signature), Basic Auth tokens are plain base64.
  */
 function buildAuthHeader(token: string): Record<string, string> {
-  return { Authorization: `Basic ${token}` };
+  const isBearer = token.includes('.');
+  return { Authorization: isBearer ? `Bearer ${token}` : `Basic ${token}` };
 }
 
 /**

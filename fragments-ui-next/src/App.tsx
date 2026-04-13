@@ -26,6 +26,7 @@ function App() {
         onSubmit={auth.signIn}
         isLoading={auth.isLoading}
         error={auth.error}
+        isCognito={auth.isCognito}
       />
     );
   }
@@ -38,9 +39,12 @@ function App() {
       error={fragments.error}
       onLoad={fragments.loadFragments}
       onCreate={fragments.createFragment}
+      onUpdate={fragments.updateFragment}
       onDelete={fragments.deleteFragment}
       onSignOut={auth.signOut}
       username={auth.user.username}
+      token={auth.user.token}
+      apiBaseUrl={config.apiBaseUrl}
     />
   );
 }

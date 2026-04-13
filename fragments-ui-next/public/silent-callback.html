@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Silent Callback</title>
+</head>
+<body>
+  <script>
+    // This page is loaded in a hidden iframe for silent token renewal.
+    // The OIDC library handles the response automatically.
+    window.parent.postMessage(window.location.href, window.location.origin);
+  </script>
+</body>
+</html>

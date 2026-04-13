@@ -1,0 +1,16 @@
+{
+  "name": "Fragments",
+  "short_name": "Fragments",
+  "description": "A modern fragment management system",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#7c8aff",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

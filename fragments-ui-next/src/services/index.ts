@@ -4,3 +4,19 @@ export type { ApiClient } from './api.client';
 export { createAgentStream } from './agent.stream';
 export type { AgentStreamController, AgentStreamCallbacks } from './agent.stream';
 export { signInBasic, signOut, encodeBasicAuth, validateSession } from './auth.service';
+export {
+  getCognitoUser,
+  cognitoSignIn,
+  cognitoHandleCallback,
+  cognitoSignOut,
+  cognitoHandleSilentCallback,
+} from './cognito.service';
+export {
+  registerServiceWorker,
+  isOffline,
+  cacheFragments,
+  getCachedFragments,
+  cacheFragmentData,
+  getCachedFragmentData,
+  removeCachedFragmentData,
+} from './offline.service';

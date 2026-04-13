@@ -1,16 +1,23 @@
 // ────────────────────────────────────────────────────────────────────────────
 // useFragments — CRUD operations for fragments with loading/error states
+// Includes IndexedDB caching for offline support
 // ────────────────────────────────────────────────────────────────────────────
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { Fragment } from '../types';
-import { createApiClient, FragmentsApiError } from '../services';
-import type { ApiClient } from '../services';
+import {
+  createApiClient,
+  FragmentsApiError,
+  cacheFragments,
+  getCachedFragments,
+  removeCachedFragmentData,
+} from '../services';
 
 interface UseFragmentsState {
   fragments: Fragment[];
   isLoading: boolean;
   error: string | null;
+  isOffline: boolean;
 }
 
 interface UseFragmentsReturn extends UseFragmentsState {
@@ -27,9 +34,10 @@ export function useFragments(apiBaseUrl: string, token: string | null): UseFragm
     fragments: [],
     isLoading: false,
     error: null,
+    isOffline: false,
   });
 
-  const api: ApiClient = createApiClient({ baseUrl: apiBaseUrl });
+  const api = useMemo(() => createApiClient({ baseUrl: apiBaseUrl }), [apiBaseUrl]);
 
   const setLoading = (isLoading: boolean) =>
     setState((prev) => ({ ...prev, isLoading, error: isLoading ? null : prev.error }));
@@ -46,14 +54,29 @@ export function useFragments(apiBaseUrl: string, token: string | null): UseFragm
     try {
       const response = await api.listFragments(token, true);
       const fragments = (response.fragments || []) as Fragment[];
-      setState({ fragments, isLoading: false, error: null });
+      // Cache to IndexedDB for offline use
+      cacheFragments(fragments);
+      setState({ fragments, isLoading: false, error: null, isOffline: false });
     } catch (err) {
+      // Try offline fallback
+      if (!navigator.onLine) {
+        const cached = await getCachedFragments();
+        if (cached.length > 0) {
+          setState({
+            fragments: cached,
+            isLoading: false,
+            error: 'Offline — showing cached fragments',
+            isOffline: true,
+          });
+          return;
+        }
+      }
       const message = err instanceof FragmentsApiError
         ? err.apiMessage
         : 'Failed to load fragments';
       setError(message);
     }
-  }, [token]);
+  }, [token, api]);
 
   const createFragment = useCallback(
     async (content: string | ArrayBuffer, contentType: string): Promise<Fragment | null> => {
@@ -64,7 +87,8 @@ export function useFragments(apiBaseUrl: string, token: string | null): UseFragm
         // Refresh list after creation
         const listResponse = await api.listFragments(token, true);
         const fragments = (listResponse.fragments || []) as Fragment[];
-        setState({ fragments, isLoading: false, error: null });
+        cacheFragments(fragments);
+        setState({ fragments, isLoading: false, error: null, isOffline: false });
         return response.fragment;
       } catch (err) {
         const message = err instanceof FragmentsApiError
@@ -74,7 +98,7 @@ export function useFragments(apiBaseUrl: string, token: string | null): UseFragm
         return null;
       }
     },
-    [token]
+    [token, api]
   );
 
   const deleteFragment = useCallback(
@@ -83,10 +107,12 @@ export function useFragments(apiBaseUrl: string, token: string | null): UseFragm
       setLoading(true);
       try {
         await api.deleteFragment(token, id);
+        removeCachedFragmentData(id);
         // Refresh list after deletion
         const listResponse = await api.listFragments(token, true);
         const fragments = (listResponse.fragments || []) as Fragment[];
-        setState({ fragments, isLoading: false, error: null });
+        cacheFragments(fragments);
+        setState({ fragments, isLoading: false, error: null, isOffline: false });
         return true;
       } catch (err) {
         const message = err instanceof FragmentsApiError
@@ -96,7 +122,7 @@ export function useFragments(apiBaseUrl: string, token: string | null): UseFragm
         return false;
       }
     },
-    [token]
+    [token, api]
   );
 
   const updateFragment = useCallback(
@@ -108,7 +134,8 @@ export function useFragments(apiBaseUrl: string, token: string | null): UseFragm
         // Refresh list after update
         const listResponse = await api.listFragments(token, true);
         const fragments = (listResponse.fragments || []) as Fragment[];
-        setState({ fragments, isLoading: false, error: null });
+        cacheFragments(fragments);
+        setState({ fragments, isLoading: false, error: null, isOffline: false });
         return response.fragment;
       } catch (err) {
         const message = err instanceof FragmentsApiError
@@ -118,7 +145,7 @@ export function useFragments(apiBaseUrl: string, token: string | null): UseFragm
         return null;
       }
     },
-    [token]
+    [token, api]
   );
 
   const getFragmentInfo = useCallback(
@@ -135,7 +162,7 @@ export function useFragments(apiBaseUrl: string, token: string | null): UseFragm
         return null;
       }
     },
-    [token]
+    [token, api]
   );
 
   return {
