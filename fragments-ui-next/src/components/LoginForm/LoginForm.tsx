@@ -74,7 +74,7 @@ export function LoginForm({ onSubmit, isLoading, error }: LoginFormProps) {
         </form>
 
         <p className="login-footer">
-          Powered by <strong>Hierarc.ai</strong>
+          Fragment Management System
         </p>
       </div>
     </div>
