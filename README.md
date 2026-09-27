@@ -106,8 +106,8 @@ npm run dev
 ### Test Credentials (Basic Auth)
 
 ```
-Email:    kishandewasi606@gmail.com
-Password: Jckzwtjh7d
+Email:    test123@gmail.com
+Password: **********
 ```
 
 ### Running with Docker Compose (AWS-backed storage)
