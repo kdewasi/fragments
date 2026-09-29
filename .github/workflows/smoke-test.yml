@@ -1,7 +1,8 @@
 name: smoke-test
 
 # Runs the Hurl integration suite against a deployed Fragments API.
-# Manual trigger; defaults to the Vercel demo environment.
+# Manual trigger (defaults to the Vercel demo environment); also runs when
+# this file itself changes on the demo branch.
 
 on:
   workflow_dispatch:
@@ -10,16 +11,20 @@ on:
         description: Base URL of a running Fragments API (no trailing slash)
         required: true
         default: https://fragments-api-kishan-dewasis-projects.vercel.app
+  push:
+    branches: [claude/wonderful-volta-fmd3py]
+    paths: ['.github/workflows/smoke-test.yml']
 
 permissions:
   contents: read
 
 env:
   HURL_VERSION: 6.1.1
+  API_URL: ${{ inputs.api_url || 'https://fragments-api-kishan-dewasis-projects.vercel.app' }}
 
 jobs:
   hurl:
-    name: Hurl suite against ${{ inputs.api_url }}
+    name: Hurl suite against the live API
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -36,11 +41,13 @@ jobs:
           hurl --version
 
       - name: Health check
-        run: curl --fail --silent --show-error "${{ inputs.api_url }}/health"
+        run: |
+          echo "Target: $API_URL"
+          curl --fail --silent --show-error "$API_URL/health"
 
       - name: Run the integration suite
         run: |
           hurl --test \
             --variables-file tests/integration/vars.env \
-            --variable "host=${{ inputs.api_url }}" \
+            --variable "host=$API_URL" \
             --glob "tests/integration/**/*.hurl"
