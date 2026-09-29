@@ -51,6 +51,25 @@ describe('config', () => {
     expect(config.logPretty).toBe(false);
   });
 
+  test('selects the storage backend', () => {
+    const clean = {
+      AWS_REGION: undefined,
+      BLOB_READ_WRITE_TOKEN: undefined,
+      FRAGMENTS_STORAGE: undefined,
+    };
+    expect(loadConfig(clean).storage).toBe('memory');
+    expect(loadConfig({ ...clean, AWS_REGION: 'us-east-1' }).storage).toBe('aws');
+    expect(loadConfig({ ...clean, BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_x' }).storage).toBe(
+      'blob'
+    );
+    expect(
+      loadConfig({ ...clean, AWS_REGION: 'us-east-1', FRAGMENTS_STORAGE: 'memory' }).storage
+    ).toBe('memory');
+    expect(() => loadConfig({ ...clean, FRAGMENTS_STORAGE: 'floppy' })).toThrow(
+      /FRAGMENTS_STORAGE/
+    );
+  });
+
   test('parses lists, booleans and trust proxy values', () => {
     expect(loadConfig({ CORS_ORIGINS: 'https://a.com, https://b.com ,' }).corsOrigins).toEqual([
       'https://a.com',

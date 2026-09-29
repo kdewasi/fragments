@@ -28,6 +28,21 @@ const nodeEnv = env.NODE_ENV || 'development';
 const isProduction = nodeEnv === 'production';
 const isTest = nodeEnv === 'test';
 
+// Storage backend: explicit FRAGMENTS_STORAGE, else inferred from the environment
+const STORAGE_BACKENDS = ['memory', 'aws', 'blob'];
+const resolveStorage = () => {
+  const explicit = env.FRAGMENTS_STORAGE;
+  if (explicit) {
+    if (!STORAGE_BACKENDS.includes(explicit)) {
+      throw new Error(`FRAGMENTS_STORAGE must be one of ${STORAGE_BACKENDS.join(', ')}`);
+    }
+    return explicit;
+  }
+  if (env.AWS_REGION) return 'aws';
+  if (env.BLOB_READ_WRITE_TOKEN) return 'blob';
+  return 'memory';
+};
+
 const config = {
   nodeEnv,
   isProduction,
@@ -64,8 +79,11 @@ const config = {
     cognitoClientId: env.AWS_COGNITO_CLIENT_ID || null,
   },
 
+  // 'memory' | 'aws' | 'blob'
+  storage: resolveStorage(),
+
   aws: {
-    // When a region is set, fragments are stored in S3 + DynamoDB; otherwise in memory.
+    // Region for the S3 + DynamoDB backend
     region: env.AWS_REGION || null,
     s3Bucket: env.AWS_S3_BUCKET_NAME || 'fragments',
     dynamoTable: env.AWS_DYNAMODB_TABLE_NAME || 'fragments',

@@ -15,3 +15,5 @@ env.jest
 eslint.config.mjs
 .prettier*
 *.md
+api/
+vercel.json

@@ -1,8 +1,16 @@
 // src/model/data/index.js
-// Storage backend selection: AWS (S3 + DynamoDB) when a region is configured,
-// otherwise an in-memory store for development and unit tests.
+// Storage backend selection (see config.storage):
+//   aws    - S3 + DynamoDB (production on ECS)
+//   blob   - Vercel Blob (the Vercel demo deployment)
+//   memory - in-process (development and unit tests)
 'use strict';
 
 const config = require('../../config');
 
-module.exports = config.aws.region ? require('./aws') : require('./memory');
+const backends = {
+  aws: () => require('./aws'),
+  blob: () => require('./blob'),
+  memory: () => require('./memory'),
+};
+
+module.exports = backends[config.storage]();
