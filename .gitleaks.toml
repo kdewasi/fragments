@@ -1,0 +1,17 @@
+# gitleaks configuration (https://github.com/gitleaks/gitleaks)
+# Run locally with: gitleaks dir . -c .gitleaks.toml
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test-only credentials and generated files"
+paths = [
+  # bcrypt hashes for the two test users used by unit and integration tests
+  '''fragments-backend/tests/\.htpasswd''',
+  # base64 of those same test users for the Hurl Authorization headers
+  '''fragments-backend/tests/integration/vars\.env''',
+  '''package-lock\.json''',
+  '''node_modules''',
+  '''dist''',
+  '''coverage''',
+]

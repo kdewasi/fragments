@@ -1,88 +1,111 @@
 name: cd
 
+# Deploys the backend to Amazon ECS whenever a version tag (v1.2.3) is pushed.
+#
+# Configure these repository *variables* (Settings -> Secrets and variables -> Actions -> Variables):
+#   AWS_REGION, AWS_ROLE_TO_ASSUME (IAM role trusted by GitHub OIDC, see deploy/iam/),
+#   ECS_CLUSTER, ECS_SERVICE, ECS_EXECUTION_ROLE_ARN, ECS_TASK_ROLE_ARN,
+#   AWS_S3_BUCKET_NAME, AWS_DYNAMODB_TABLE_NAME, AWS_COGNITO_POOL_ID, AWS_COGNITO_CLIENT_ID,
+#   API_URL (public URL of the load balancer), CORS_ORIGINS (the UI's origin)
+#
+# Fallback without OIDC: set the secrets AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+# (and AWS_SESSION_TOKEN for temporary credentials) and leave AWS_ROLE_TO_ASSUME empty.
+
 on:
   push:
     tags:
-      - "v**"
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write # required for OIDC federation with AWS
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  ECR_REPOSITORY: fragments
 
 jobs:
-  aws:
-    name: AWS
+  deploy:
+    name: Build, push to ECR and deploy to ECS
     runs-on: ubuntu-latest
+    environment: production
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Check required configuration
+        env:
+          ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+          ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+          ECS_EXECUTION_ROLE_ARN: ${{ vars.ECS_EXECUTION_ROLE_ARN }}
+          ECS_TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
+          AWS_S3_BUCKET_NAME: ${{ vars.AWS_S3_BUCKET_NAME }}
+          AWS_DYNAMODB_TABLE_NAME: ${{ vars.AWS_DYNAMODB_TABLE_NAME }}
+          AWS_COGNITO_POOL_ID: ${{ vars.AWS_COGNITO_POOL_ID }}
+          AWS_COGNITO_CLIENT_ID: ${{ vars.AWS_COGNITO_CLIENT_ID }}
+          API_URL: ${{ vars.API_URL }}
+        run: |
+          missing=""
+          for name in ECS_CLUSTER ECS_SERVICE ECS_EXECUTION_ROLE_ARN ECS_TASK_ROLE_ARN \
+                      AWS_S3_BUCKET_NAME AWS_DYNAMODB_TABLE_NAME AWS_COGNITO_POOL_ID \
+                      AWS_COGNITO_CLIENT_ID API_URL; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository variables:$missing (see docs/DEPLOYMENT.md)"
+            exit 1
+          fi
 
-      - name: Configure AWS Credentials using Secrets
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
-
-      - name: Test AWS CLI
-        run: |
-          echo "Testing AWS CLI configuration..."
-          aws sts get-caller-identity
-          echo "AWS CLI is working!"
 
       - name: Login to Amazon ECR
-        id: login-ecr
+        id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push to Amazon ECR
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPO: fragments
-          VERSION_TAG: ${{ github.ref_name }}
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: ./fragments-backend
           file: ./fragments-backend/Dockerfile
           push: true
-          tags: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ env.VERSION_TAG }}, ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest
+          provenance: false
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
 
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: update-task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
+      - name: Render the ECS task definition
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPO: fragments
-          VERSION_TAG: ${{ github.ref_name }}
-        with:
-          task-definition: fragments-backend/ecs-task-definition.json
-          container-name: fragments
-          # Use the image we just built and pushed to ECR for this tag
-          image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ env.VERSION_TAG }}
-          # Add all the necessary environment variables
-          environment-variables: |
-            LOG_LEVEL=info
-            NODE_ENV=production
-            PORT=8080
-            HTPASSWD_FILE=tests/.htpasswd
-            AWS_REGION=us-east-1
-            AWS_S3_BUCKET_NAME=kdewasi-fragments
-            AWS_DYNAMODB_TABLE_NAME=fragments
-
-      - name: Create ECS cluster if needed
+          ECR_IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}
+          ECS_EXECUTION_ROLE_ARN: ${{ vars.ECS_EXECUTION_ROLE_ARN }}
+          ECS_TASK_ROLE_ARN: ${{ vars.ECS_TASK_ROLE_ARN }}
+          AWS_S3_BUCKET_NAME: ${{ vars.AWS_S3_BUCKET_NAME }}
+          AWS_DYNAMODB_TABLE_NAME: ${{ vars.AWS_DYNAMODB_TABLE_NAME }}
+          AWS_COGNITO_POOL_ID: ${{ vars.AWS_COGNITO_POOL_ID }}
+          AWS_COGNITO_CLIENT_ID: ${{ vars.AWS_COGNITO_CLIENT_ID }}
+          API_URL: ${{ vars.API_URL }}
+          CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
         run: |
-          echo "Checking if ECS cluster exists..."
-          if ! aws ecs describe-clusters --clusters fragments --query 'clusters[0].status' --output text 2>/dev/null | grep -q ACTIVE; then
-            echo "Creating ECS cluster..."
-            aws ecs create-cluster --cluster-name fragments
-          else
-            echo "ECS cluster already exists"
-          fi
+          envsubst '$ECR_IMAGE $AWS_REGION $ECS_EXECUTION_ROLE_ARN $ECS_TASK_ROLE_ARN $AWS_S3_BUCKET_NAME $AWS_DYNAMODB_TABLE_NAME $AWS_COGNITO_POOL_ID $AWS_COGNITO_CLIENT_ID $API_URL $CORS_ORIGINS' \
+            < fragments-backend/deploy/ecs-task-definition.json > task-definition.json
+          # Print the rendered definition (contains no secrets) for the run log
+          cat task-definition.json
 
-      - name: Deploy Amazon ECS task definition
+      - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: ${{ steps.update-task-def.outputs.task-definition }}
-          cluster: fragments-cluster
-          service: fragments-service-9afmq8nw
+          task-definition: task-definition.json
+          cluster: ${{ vars.ECS_CLUSTER }}
+          service: ${{ vars.ECS_SERVICE }}
           wait-for-service-stability: true
