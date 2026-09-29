@@ -158,16 +158,24 @@ converted, `429` rate limited.
 
 Vite inlines these at build time; the UI Dockerfile accepts them as `--build-arg`s.
 
-## Demo environment (Vercel)
+## Live demo (Vercel)
 
-Besides the AWS production setup, the repository can run as a sandbox on
-Vercel: the API as a serverless function with Vercel Blob storage
-(`fragments-backend/api/index.js`, `vercel.json`) and the UI as a static site.
-The demo uses the test users above with HTTP Basic Auth and is not meant to
-hold real data.
+| | URL |
+| --- | --- |
+| Web UI | https://fragments-ui-kishan-dewasis-projects.vercel.app |
+| API | https://fragments-api-kishan-dewasis-projects.vercel.app (`/health`, `/v1/fragments`) |
 
+Sign in with a test user from the table above. The demo is a sandbox: it uses
+HTTP Basic Auth with shared test accounts, stores data in a private Vercel Blob
+store, limits uploads to 4 MB and may be wiped at any time. Do not put real
+data in it.
+
+Besides the AWS production setup, the repository runs on Vercel as follows: the
+API is a serverless function with Vercel Blob storage
+(`fragments-backend/api/index.js`, `vercel.json`) and the UI is a static site.
 `.github/workflows/deploy-vercel.yml` deploys both with a single `VERCEL_TOKEN`
-secret; the dashboard alternative is described in
+secret, `.github/workflows/smoke-test.yml` runs the Hurl suite against a live
+API, and the dashboard alternative is described in
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#demo-environment-on-vercel).
 
 ## Deployment
