@@ -1,109 +1,135 @@
-require('dotenv').config();
+// src/app.js
+'use strict';
 
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const passport = require('passport');
-const { strategy, authenticate } = require('./auth');
-const { version, author } = require('../package.json');
 const pinoHttp = require('pino-http');
+const { rateLimit } = require('express-rate-limit');
+const { randomUUID } = require('node:crypto');
+const { STATUS_CODES } = require('node:http');
+
+const config = require('./config');
 const logger = require('./logger');
-const { createErrorResponse } = require('./response');
+const { strategy, authenticate } = require('./auth');
+const { createSuccessResponse, createErrorResponse } = require('./response');
+const { version, author } = require('../package.json');
 
 const app = express();
 
-// Register authentication strategy
+app.set('trust proxy', config.trustProxy);
+app.disable('x-powered-by');
+
 passport.use(strategy());
 
-// CORS — must come before authentication to handle OPTIONS preflight
-app.use(
-  cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    credentials: false,
-    optionsSuccessStatus: 200,
-    preflightContinue: false,
-  })
-);
+// Security headers. CORP is relaxed so the UI can embed fragment images cross-origin.
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
-// Security headers
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: false,
-  })
-);
+// CORS: restrict to CORS_ORIGINS when configured, which it should be in production.
+const corsOptions = {
+  origin: config.corsOrigins.length > 0 ? config.corsOrigins : '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  exposedHeaders: ['Location', 'Content-Type', 'Content-Length', 'X-Request-Id'],
+  maxAge: 600,
+};
+if (config.isProduction && corsOptions.origin === '*') {
+  logger.warn('CORS_ORIGINS is not set; any origin may call this API');
+}
+app.use(cors(corsOptions));
 
-// Response compression
 app.use(compression());
 
-// Structured HTTP request logging
+// Structured request logging with a request id that is echoed back to clients.
+const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 app.use(
   pinoHttp({
     logger,
-    genReqId: () => `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    genReqId: (req, res) => {
+      const incoming = req.headers['x-request-id'];
+      const id =
+        typeof incoming === 'string' && REQUEST_ID_PATTERN.test(incoming) ? incoming : randomUUID();
+      res.setHeader('X-Request-Id', id);
+      return id;
+    },
+    autoLogging: { ignore: (req) => req.url === '/health' },
+    // Compact request/response logs (no header dumps); the request id ties them together
+    serializers: {
+      req: (req) => ({
+        id: req.id,
+        method: req.method,
+        url: req.url,
+        remoteAddress: req.remoteAddress,
+      }),
+      res: (res) => ({ statusCode: res.statusCode }),
+    },
+    customLogLevel: (req, res, err) => {
+      if (err || res.statusCode >= 500) return 'error';
+      if (res.statusCode >= 400) return 'warn';
+      return 'info';
+    },
   })
 );
 
-// Passport initialization
-app.use(passport.initialize());
+// Basic abuse protection. Tune with RATE_LIMIT_WINDOW_MS / RATE_LIMIT_MAX.
+app.use(
+  rateLimit({
+    windowMs: config.rateLimit.windowMs,
+    limit: config.rateLimit.limit,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    skip: (req) => req.path === '/health',
+    handler: (req, res) => {
+      res.status(429).json(createErrorResponse(429, 'Too many requests, please try again later'));
+    },
+  })
+);
 
-// Authenticated API routes
-app.use('/v1', authenticate(), require('./routes'));
-
-// Health check endpoint (unauthenticated, for load balancers)
+// Unauthenticated endpoints for load balancers and humans
 app.get('/health', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
-  res.status(200).json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
+  res
+    .status(200)
+    .json(createSuccessResponse({ uptime: process.uptime(), timestamp: new Date().toISOString() }));
 });
 
-// Root metadata endpoint (unauthenticated)
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
-  res.status(200).json({
-    status: 'ok',
-    author,
-    githubUrl: 'https://github.com/kdewasi/fragments',
-    version,
-  });
+  res
+    .status(200)
+    .json(
+      createSuccessResponse({ author, githubUrl: 'https://github.com/kdewasi/fragments', version })
+    );
 });
 
-// 404 handler — no matching route found
+// Everything under /v1 requires authentication
+app.use(passport.initialize());
+app.use('/v1', authenticate(), require('./routes'));
+
+// 404 for anything else
 app.use((req, res) => {
-  res.status(404).json(createErrorResponse(404, `Resource not found: ${req.method} ${req.originalUrl}`));
+  res.status(404).json(createErrorResponse(404, 'not found'));
 });
 
-// ────────────────────────────────────────────────────────────────────────────
-// Central error-handling middleware (4-arg signature required by Express)
-// All route handlers that call next(err) will be caught here.
-// This ensures a single, consistent error response shape for all failures.
-// ────────────────────────────────────────────────────────────────────────────
+// Central error handler. Client errors keep their message; server errors are
+// logged in full but reported to the client as a generic message.
 // eslint-disable-next-line no-unused-vars
-app.use((err, req, res, _next) => {
-  const status = err.status || err.statusCode || 500;
+app.use((err, req, res, next) => {
+  const status = Number(err.status || err.statusCode) || 500;
+  const isClientError = status >= 400 && status < 500;
+  const message = isClientError
+    ? err.message || STATUS_CODES[status] || 'Bad Request'
+    : 'Internal Server Error';
 
-  // Log with full context for debugging, but never leak stack traces to clients
-  logger.error(
-    {
-      err,
-      method: req.method,
-      url: req.originalUrl,
-      status,
-    },
-    `Unhandled error: ${err.message}`
-  );
+  if (isClientError) {
+    logger.warn({ reqId: req.id, status, err: err.message }, 'Request failed');
+  } else {
+    logger.error({ reqId: req.id, status, err }, 'Unhandled error');
+  }
 
-  res.status(status).json(
-    createErrorResponse(status, process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message)
-  );
+  res.status(status).json(createErrorResponse(status, message));
 });
 
 module.exports = app;
-

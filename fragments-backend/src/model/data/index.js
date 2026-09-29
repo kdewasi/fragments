@@ -1,5 +1,8 @@
 // src/model/data/index.js
+// Storage backend selection: AWS (S3 + DynamoDB) when a region is configured,
+// otherwise an in-memory store for development and unit tests.
+'use strict';
 
-// If the environment sets an AWS Region, we'll use AWS backend
-// services (S3, DynamoDB); otherwise, we'll use an in-memory db.
-module.exports = process.env.AWS_REGION ? require('./aws') : require('./memory');
+const config = require('../../config');
+
+module.exports = config.aws.region ? require('./aws') : require('./memory');

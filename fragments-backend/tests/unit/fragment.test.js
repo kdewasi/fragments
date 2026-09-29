@@ -5,18 +5,17 @@ const { Fragment } = require('../../src/model/fragment');
 const wait = async (ms = 50) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const validTypes = [
-  `text/plain`,
-  /*
-   Currently, only text/plain is supported. Others will be added later.
-
-  `text/markdown`,
-  `text/html`,
-  `application/json`,
-  `image/png`,
-  `image/jpeg`,
-  `image/webp`,
-  `image/gif`,
-  */
+  'text/plain',
+  'text/markdown',
+  'text/html',
+  'text/csv',
+  'application/json',
+  'application/yaml',
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'image/avif',
 ];
 
 describe('Fragment class', () => {
@@ -56,8 +55,9 @@ describe('Fragment class', () => {
       expect(fragment.size).toBe(0);
     });
 
-    test('size must be a number', () => {
+    test('size must be an integer', () => {
       expect(() => new Fragment({ ownerId: '1234', type: 'text/plain', size: '1' })).toThrow();
+      expect(() => new Fragment({ ownerId: '1234', type: 'text/plain', size: 1.5 })).toThrow();
     });
 
     test('size can be 0', () => {
@@ -168,6 +168,31 @@ describe('Fragment class', () => {
       });
       expect(fragment.formats).toEqual(['text/plain']);
     });
+
+    test('formats for every supported type include the type itself', () => {
+      validTypes.forEach((type) => {
+        const fragment = new Fragment({ ownerId: '1234', type, size: 0 });
+        expect(fragment.formats).toContain(type);
+      });
+    });
+
+    test('images convert to every image type, text types to plain text', () => {
+      expect(new Fragment({ ownerId: '1', type: 'image/png' }).formats).toEqual(
+        expect.arrayContaining(['image/jpeg', 'image/webp', 'image/gif', 'image/avif'])
+      );
+      expect(new Fragment({ ownerId: '1', type: 'text/csv' }).formats).toEqual([
+        'text/csv',
+        'text/plain',
+        'application/json',
+      ]);
+      expect(new Fragment({ ownerId: '1', type: 'application/json' }).formats).toContain(
+        'application/yaml'
+      );
+    });
+
+    test('supportedTypes lists all types', () => {
+      expect(Fragment.supportedTypes).toEqual(validTypes);
+    });
   });
 
   describe('save(), getData(), setData(), byId(), byUser(), delete()', () => {
@@ -251,7 +276,14 @@ describe('Fragment class', () => {
       await fragment.setData(Buffer.from('a'));
 
       await Fragment.delete('1234', fragment.id);
-      expect(() => Fragment.byId('1234', fragment.id)).rejects.toThrow();
+      await expect(Fragment.byId('1234', fragment.id)).rejects.toMatchObject({ status: 404 });
+    });
+
+    test('setData() validates the data against the fragment type', async () => {
+      const fragment = new Fragment({ ownerId: '1234', type: 'application/json', size: 0 });
+      await expect(fragment.setData(Buffer.from('{oops'))).rejects.toMatchObject({ status: 400 });
+      await expect(fragment.setData(Buffer.from('{"ok":1}'))).resolves.toBeUndefined();
+      expect(fragment.size).toBe(8);
     });
   });
 });

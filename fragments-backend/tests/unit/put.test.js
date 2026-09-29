@@ -1,20 +1,16 @@
 const request = require('supertest');
 const app = require('../../src/app');
+const { user, pass, user2, pass2 } = require('./helpers');
 
 describe('PUT /v1/fragments/:id', () => {
-  const user = 'kishandewasi606@gmail.com';
-  const pass = 'Jckzwtjh7d';
-
   let fragmentId;
 
   beforeAll(async () => {
-    // Create a fragment to update
     const res = await request(app)
       .post('/v1/fragments')
       .auth(user, pass)
       .set('Content-Type', 'text/plain')
       .send('Original content');
-
     expect(res.statusCode).toBe(201);
     fragmentId = res.body.fragment.id;
   });
@@ -42,11 +38,29 @@ describe('PUT /v1/fragments/:id', () => {
       .send('updated content')
       .expect(404));
 
+  test("another user's fragment returns 404", () =>
+    request(app)
+      .put(`/v1/fragments/${fragmentId}`)
+      .auth(user2, pass2)
+      .set('Content-Type', 'text/plain')
+      .send('hijack')
+      .expect(404));
+
+  test('changing the fragment type is rejected with 400', async () => {
+    const res = await request(app)
+      .put(`/v1/fragments/${fragmentId}`)
+      .auth(user, pass)
+      .set('Content-Type', 'text/markdown')
+      .send('# nope');
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error.message).toMatch(/does not match/);
+  });
+
   test('authenticated user can update a fragment', async () => {
     const res = await request(app)
       .put(`/v1/fragments/${fragmentId}`)
       .auth(user, pass)
-      .set('Content-Type', 'text/plain')
+      .set('Content-Type', 'text/plain; charset=utf-8')
       .send('Updated content!');
 
     expect(res.statusCode).toBe(200);
@@ -54,12 +68,11 @@ describe('PUT /v1/fragments/:id', () => {
     expect(res.body.status).toBe('ok');
     expect(res.body.fragment.id).toBe(fragmentId);
     expect(res.body.fragment.type).toBe('text/plain');
-    expect(res.body.fragment.size).toBe(16); // "Updated content!" length
+    expect(res.body.fragment.size).toBe(16);
   });
 
   test('fragment data is actually updated', async () => {
     const res = await request(app).get(`/v1/fragments/${fragmentId}`).auth(user, pass);
-
     expect(res.statusCode).toBe(200);
     expect(res.text).toBe('Updated content!');
   });

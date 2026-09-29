@@ -1,63 +1,58 @@
-# docker-compose.yml
+# Local stack: the API backed by DynamoDB Local (metadata) and LocalStack S3 (data).
+#
+#   docker compose up -d --build
+#   ./scripts/local-aws-setup.sh      # creates the bucket and table
+#   npm run test:integration          # Hurl tests against http://localhost:8080
+#
+# Authentication is HTTP Basic with the test users in tests/.htpasswd, which is
+# mounted read-only (the image itself contains no credentials).
 
 services:
-  # Fragments microservice API server
   fragments:
-    # Use a proper init process (tini)
-    init: true
-    # Build the Docker Image using the Dockerfile
-    # and current directory as the build context
     build: .
-    # Environment variables to use
-    environment:
-      # Our API will be running on http://localhost:8080
-      - API_URL=http://localhost:8080
-      # Use Basic Auth (for running tests, CI)
-      - HTPASSWD_FILE=tests/.htpasswd
-      # Use the LOG_LEVEL set in the host environment, or default to info
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-      # AWS Region - if set, will use AWS backend (S3, DynamoDB)
-      # Commented out for local development to use LocalStack instead
-      # - AWS_REGION=us-east-1
-      # AWS credentials for LocalStack
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-      - AWS_SESSION_TOKEN=test
-      # Use the LocalStack endpoint vs. AWS for S3 AWS SDK clients.
-      # NOTE: we use Docker's internal network to the localstack container
-      - AWS_S3_ENDPOINT_URL=http://localstack:4566
-      # Use the DynamoDB local endpoint vs. AWS for DynamoDB AWS SDK clients.
-      - AWS_DYNAMODB_ENDPOINT_URL=http://dynamodb-local:8000
-      # This S3 bucket and DynamoDB table need to get created first, see
-      # local-aws-setup.sh. We'll default to 'fragments' as the name, unless
-      # something else is defined in the env.
-      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME:-fragments}
-      - AWS_DYNAMODB_TABLE_NAME=${AWS_DYNAMODB_TABLE_NAME:-fragments}
-    # Ports to publish
+    init: true
     ports:
       - '8080:8080'
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_PRETTY: 'false'
+      API_URL: http://localhost:8080
+      HTPASSWD_FILE: /app/tests/.htpasswd
+      RATE_LIMIT_MAX: 10000
+      # A region enables the AWS storage backend (pointed at the local containers)
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_S3_ENDPOINT_URL: http://localstack:4566
+      AWS_DYNAMODB_ENDPOINT_URL: http://dynamodb-local:8000
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-fragments}
+      AWS_DYNAMODB_TABLE_NAME: ${AWS_DYNAMODB_TABLE_NAME:-fragments}
+    volumes:
+      - ./tests/.htpasswd:/app/tests/.htpasswd:ro
+    depends_on:
+      localstack:
+        condition: service_healthy
+      dynamodb-local:
+        condition: service_started
 
-  # DynamoDB Local, see: https://hub.docker.com/r/amazon/dynamodb-local
+  # https://hub.docker.com/r/amazon/dynamodb-local
   dynamodb-local:
-    image: amazon/dynamodb-local
+    image: amazon/dynamodb-local:latest
+    command: ['-jar', 'DynamoDBLocal.jar', '-inMemory', '-sharedDb']
     ports:
-      # Default port is 8000
       - '8000:8000'
-    # Run the database in memory, see:
-    # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.UsageNotes.html
-    command: ['-jar', 'DynamoDBLocal.jar', '-inMemory']
 
-  # LocalStack for S3, see https://docs.localstack.cloud/get-started/#docker-compose
-  # Interact via awscli-local, see https://docs.localstack.cloud/integrations/aws-cli/#installation
+  # https://docs.localstack.cloud/getting-started/installation/#docker-compose
   localstack:
-    # https://hub.docker.com/r/localstack/localstack
-    image: localstack/localstack
+    image: localstack/localstack:4
     ports:
       - '4566:4566'
     environment:
-      # See https://docs.localstack.cloud/localstack/configuration/ and
-      # https://hub.docker.com/r/localstack/localstack for config details.
-      # We only want to run S3
-      - SERVICES=s3
-      # We're always working in us-east-1
-      - DEFAULT_REGION=us-east-1
+      SERVICES: s3
+      EAGER_SERVICE_LOADING: 1
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:4566/_localstack/health || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 30

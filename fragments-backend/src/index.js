@@ -1,29 +1,37 @@
 // src/index.js
-require('dotenv').config();
+'use strict';
 
-const app = require('./app');
-const logger = require('./logger');
+// Load a local .env file if one exists (never committed, see .env.example)
+require('dotenv').config({ quiet: true });
+
 const stoppable = require('stoppable');
+const config = require('./config');
+const logger = require('./logger');
+const app = require('./app');
 
-const PORT = process.env.PORT || 8080;
-
-// Wrap in stoppable for graceful shutdown (10s grace period)
 const server = stoppable(
-  app.listen(PORT, () => {
-    logger.info({ port: PORT }, 'Server started');
+  app.listen(config.port, () => {
+    logger.info({ port: config.port, env: config.nodeEnv }, 'Server started');
   }),
-  10000
+  10_000 // grace period for in-flight requests on shutdown
 );
 
-// Graceful shutdown handler
+// Keep-alive must outlive the load balancer's idle timeout (60s on an ALB),
+// otherwise the ALB can reuse a connection the server just closed -> 502s.
+server.keepAliveTimeout = 65_000;
+server.headersTimeout = 66_000;
+
+let shuttingDown = false;
 function shutdown(signal) {
-  logger.info({ signal }, 'Shutdown signal received, closing server gracefully...');
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logger.info({ signal }, 'Shutdown signal received, closing server');
   server.stop((err) => {
     if (err) {
       logger.error({ err }, 'Error during graceful shutdown');
       process.exit(1);
     }
-    logger.info('Server closed gracefully');
+    logger.info('Server closed');
     process.exit(0);
   });
 }
@@ -31,14 +39,12 @@ function shutdown(signal) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-// Global error handlers — log and crash (let the process manager restart)
+// Log and exit on programmer errors; the container orchestrator restarts us.
 process.on('uncaughtException', (err, origin) => {
-  logger.fatal({ err, origin }, 'Uncaught Exception — crashing');
-  throw err;
+  logger.fatal({ err, origin }, 'Uncaught exception');
+  process.exit(1);
 });
-
-process.on('unhandledRejection', (reason, promise) => {
-  logger.fatal({ reason, promise }, 'Unhandled Rejection — crashing');
-  throw reason;
+process.on('unhandledRejection', (reason) => {
+  logger.fatal({ err: reason }, 'Unhandled promise rejection');
+  process.exit(1);
 });
-

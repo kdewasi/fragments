@@ -1,20 +1,16 @@
-const path = require('path');
-const dotenv = require('dotenv');
-const fs = require('fs');
+// jest.config.js
+const path = require('node:path');
 
-const envFile = path.resolve(__dirname, 'env.jest');
-if (fs.existsSync(envFile)) {
-  dotenv.config({ path: envFile, override: true });
-}
-
-console.log(
-  `✅ Loaded env: HTPASSWD_FILE=${process.env.HTPASSWD_FILE || 'undefined'} | AWS_COGNITO_POOL_ID=${process.env.AWS_COGNITO_POOL_ID || 'undefined'}`
-);
+// Test-only environment (memory storage, Basic Auth with tests/.htpasswd, silent logs)
+require('dotenv').config({ path: path.resolve(__dirname, 'env.jest'), override: true, quiet: true });
 
 module.exports = {
+  testEnvironment: 'node',
   verbose: true,
-  testTimeout: 5000,
-  testMatch: ['**/tests/unit/**/*.test.js'], // ✅ Platform-independent glob
-  testPathIgnorePatterns: ['node_modules'], // ✅ Avoid absolute patterns
-  modulePathIgnorePatterns: [], // ✅ No false ignores
+  testTimeout: 10000,
+  testMatch: ['**/tests/unit/**/*.test.js'],
+  collectCoverageFrom: ['src/**/*.js', '!src/index.js'],
+  coverageThreshold: {
+    global: { statements: 85, branches: 75, functions: 85, lines: 85 },
+  },
 };

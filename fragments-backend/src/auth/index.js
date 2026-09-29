@@ -1,35 +1,49 @@
 // src/auth/index.js
+// Picks the authentication strategy from the environment:
+//   - AWS_COGNITO_POOL_ID + AWS_COGNITO_CLIENT_ID  -> Cognito (required in production)
+//   - HTPASSWD_FILE                                -> HTTP Basic Auth (development / CI only)
+//   - nothing, outside production                  -> the bundled tests/.htpasswd
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+const config = require('../config');
 const logger = require('../logger');
 
-// Make sure our env isn't configured for both AWS Cognito and HTTP Basic Auth.
-// We can only do one or the other.  If your .env file contains all 3 of these
-// variables, something is wrong.  It should have AWS_COGNITO_POOL_ID and
-// AWS_COGNITO_CLIENT_ID together OR HTPASSWD_FILE on its own.
-if (
-  process.env.AWS_COGNITO_POOL_ID &&
-  process.env.AWS_COGNITO_CLIENT_ID &&
-  process.env.HTPASSWD_FILE
-) {
+const { cognitoPoolId, cognitoClientId, htpasswdFile } = config.auth;
+const cognitoConfigured = Boolean(cognitoPoolId && cognitoClientId);
+
+if (cognitoConfigured && htpasswdFile) {
   throw new Error(
     'env contains configuration for both AWS Cognito and HTTP Basic Auth. Only one is allowed.'
   );
 }
 
-// Prefer Amazon Cognito (production)
-if (process.env.AWS_COGNITO_POOL_ID && process.env.AWS_COGNITO_CLIENT_ID) {
-  module.exports = require('./cognito');
-}
-// Also allow for an .htpasswd file to be used, but not in production
-else if (process.env.HTPASSWD_FILE && process.env.NODE_ENV !== 'production') {
-  module.exports = require('./basic-auth');
-}
-// For development, default to Basic Auth if no env vars are set
-else if (!process.env.AWS_COGNITO_POOL_ID && !process.env.AWS_COGNITO_CLIENT_ID) {
-  // Default to Basic Auth for development (more stable)
-  logger.info('No Cognito credentials found, defaulting to Basic Auth for development');
-  module.exports = require('./basic-auth');
-}
-// Fallback to basic auth if nothing else is configured
-else {
-  module.exports = require('./basic-auth');
+if (cognitoConfigured) {
+  module.exports = require('./cognito')({ userPoolId: cognitoPoolId, clientId: cognitoClientId });
+} else if (htpasswdFile) {
+  if (config.isProduction) {
+    throw new Error(
+      'HTTP Basic Auth (HTPASSWD_FILE) is not allowed when NODE_ENV=production. ' +
+        'Set AWS_COGNITO_POOL_ID and AWS_COGNITO_CLIENT_ID instead.'
+    );
+  }
+  module.exports = require('./basic-auth')(path.resolve(htpasswdFile));
+} else if (!config.isProduction) {
+  const fallback = path.resolve(__dirname, '..', '..', 'tests', '.htpasswd');
+  if (!fs.existsSync(fallback)) {
+    throw new Error(
+      'No authentication configured: set HTPASSWD_FILE or the AWS_COGNITO_* variables'
+    );
+  }
+  logger.warn(
+    { file: fallback },
+    'No auth configured; using the test .htpasswd (development only)'
+  );
+  module.exports = require('./basic-auth')(fallback);
+} else {
+  throw new Error(
+    'No authentication configured. Production requires AWS_COGNITO_POOL_ID and AWS_COGNITO_CLIENT_ID.'
+  );
 }

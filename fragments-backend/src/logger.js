@@ -1,16 +1,26 @@
 // src/logger.js
+'use strict';
 
 const pino = require('pino');
-
-// Default log level is 'info', unless overridden
-const level = process.env.LOG_LEVEL || 'info';
+const config = require('./config');
 
 const options = {
-  level,
+  level: config.logLevel,
+  // Never write credentials or tokens to the logs, even at debug level.
+  redact: {
+    paths: [
+      'req.headers.authorization',
+      'req.headers.cookie',
+      'password',
+      'token',
+      '*.password',
+      '*.token',
+    ],
+    censor: '[REDACTED]',
+  },
 };
 
-// Enable pretty output in debug mode
-if (level === 'debug') {
+if (config.logPretty) {
   options.transport = {
     target: 'pino-pretty',
     options: {
@@ -21,7 +31,4 @@ if (level === 'debug') {
   };
 }
 
-// Export the configured logger
-const logger = pino(options);
-
-module.exports = logger;
+module.exports = pino(options);
