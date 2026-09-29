@@ -1,0 +1,102 @@
+name: deploy-vercel
+
+# Deploys the DEMO environment (API + UI) to Vercel. Manual trigger only.
+# The demo uses HTTP Basic Auth with the test users from tests/.htpasswd and
+# Vercel Blob for storage; it is a sandbox, not the production (AWS) setup.
+#
+# One-time setup (Settings -> Secrets and variables -> Actions):
+#   Secret   VERCEL_TOKEN                  account token from https://vercel.com/account/tokens
+#   Secret   VERCEL_BLOB_READ_WRITE_TOKEN  token of a Blob store created in the Vercel dashboard
+#                                          (Storage -> Create -> Blob). Without it the API keeps
+#                                          data in memory, which does not survive between
+#                                          function instances.
+#   Variable VERCEL_TEAM                   team slug, e.g. kishan-dewasis-projects
+#   Variable DEMO_API_URL                  (after the first run) the API project's production URL
+#   Variable DEMO_UI_URL                   (after the first run) the UI project's production URL
+#
+# The first run creates the Vercel projects "fragments-api" and "fragments-ui".
+# After it, set DEMO_API_URL / DEMO_UI_URL and run it again so CORS and the UI's
+# API URL point at the stable production domains.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-vercel
+  cancel-in-progress: false
+
+env:
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  VERCEL_TEAM: ${{ vars.VERCEL_TEAM }}
+
+jobs:
+  api:
+    name: Deploy API (fragments-api)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fragments-backend
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - name: Check configuration
+        run: |
+          [ -n "$VERCEL_TOKEN" ] || { echo "::error::Missing secret VERCEL_TOKEN"; exit 1; }
+          [ -n "$VERCEL_TEAM" ] || { echo "::error::Missing variable VERCEL_TEAM"; exit 1; }
+      - run: npm install --global vercel@latest
+      - name: Link the project (created on the first run)
+        run: vercel link --yes --project fragments-api --scope "$VERCEL_TEAM" --token "$VERCEL_TOKEN"
+      - name: Deploy to production
+        id: deploy
+        env:
+          BLOB_TOKEN: ${{ secrets.VERCEL_BLOB_READ_WRITE_TOKEN }}
+          UI_URL: ${{ vars.DEMO_UI_URL }}
+          API_URL: ${{ vars.DEMO_API_URL }}
+        run: |
+          args=(--prod --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_TEAM"
+                --env NODE_ENV=demo --env LOG_LEVEL=info --env LOG_PRETTY=false
+                --env HTPASSWD_FILE=tests/.htpasswd --env TRUST_PROXY=1
+                --env MAX_FRAGMENT_SIZE=4mb --env RATE_LIMIT_MAX=120)
+          if [ -n "$BLOB_TOKEN" ]; then args+=(--env "BLOB_READ_WRITE_TOKEN=$BLOB_TOKEN"); fi
+          if [ -n "$UI_URL" ]; then args+=(--env "CORS_ORIGINS=$UI_URL"); fi
+          if [ -n "$API_URL" ]; then args+=(--env "API_URL=$API_URL"); fi
+          url=$(vercel deploy "${args[@]}")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployed API: $url"
+      - name: Smoke test
+        run: |
+          curl --fail --silent --show-error "${{ steps.deploy.outputs.url }}/health"
+
+  ui:
+    name: Deploy UI (fragments-ui)
+    needs: api
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fragments-ui
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - run: npm install --global vercel@latest
+      - name: Link the project (created on the first run)
+        run: vercel link --yes --project fragments-ui --scope "$VERCEL_TEAM" --token "$VERCEL_TOKEN"
+      - name: Deploy to production
+        env:
+          # Prefer the stable production domain once it is known
+          API_URL: ${{ vars.DEMO_API_URL || needs.api.outputs.url }}
+        run: |
+          url=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_TEAM" \
+                --build-env "VITE_API_URL=$API_URL" --build-env VITE_AUTH_MODE=basic)
+          echo "Deployed UI: $url"
+          echo "### Demo deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- UI:  $url" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API: $API_URL" >> "$GITHUB_STEP_SUMMARY"

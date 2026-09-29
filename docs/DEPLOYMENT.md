@@ -175,3 +175,47 @@ npm run test:integration
 
 `docker-compose.yml` runs the API against DynamoDB Local and LocalStack S3 with
 the test users mounted read-only; nothing in it is suitable for production.
+
+## Demo environment on Vercel
+
+A lightweight alternative to AWS for showing the project: the API runs as a
+Vercel Function (`fragments-backend/api/index.js`, routed by
+`fragments-backend/vercel.json`) with Vercel Blob as storage, and the UI is a
+static Vite site. Authentication is HTTP Basic with the test users from
+`fragments-backend/tests/.htpasswd`, which `vercel.json` bundles into the
+function. The API refuses Basic Auth under `NODE_ENV=production`, so the demo
+runs with `NODE_ENV=demo`.
+
+**Option A: GitHub Actions (`deploy-vercel.yml`)**
+
+1. Create an account token at https://vercel.com/account/tokens and store it as
+   the repository secret `VERCEL_TOKEN`.
+2. In the Vercel dashboard create a Blob store (Storage → Create → Blob, access
+   *private*) and store its read-write token as the secret
+   `VERCEL_BLOB_READ_WRITE_TOKEN`.
+3. Set the repository variable `VERCEL_TEAM` to your team slug (for example
+   `kishan-dewasis-projects`).
+4. Run the *deploy-vercel* workflow. The first run creates the projects
+   `fragments-api` and `fragments-ui`; copy their production domains into the
+   variables `DEMO_API_URL` and `DEMO_UI_URL` and run it once more so CORS and
+   the UI's API URL use the stable domains.
+
+**Option B: Vercel dashboard**
+
+Import `kdewasi/fragments` twice:
+
+| Project         | Root directory      | Framework | Environment variables                                                                                                                                     |
+| --------------- | ------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fragments-api` | `fragments-backend` | Other     | `NODE_ENV=demo`, `LOG_PRETTY=false`, `HTPASSWD_FILE=tests/.htpasswd`, `TRUST_PROXY=1`, `MAX_FRAGMENT_SIZE=4mb`, `RATE_LIMIT_MAX=120`, `API_URL`, `CORS_ORIGINS` |
+| `fragments-ui`  | `fragments-ui`      | Vite      | `VITE_API_URL=https://<api domain>`, `VITE_AUTH_MODE=basic`                                                                                               |
+
+Connect a private Blob store to `fragments-api` (Storage tab); Vercel injects
+`BLOB_READ_WRITE_TOKEN` and the API switches to Blob storage automatically.
+Set `API_URL` to the API's own production URL and `CORS_ORIGINS` to the UI's.
+
+**Option C: from Claude Code with the Vercel connector**
+
+The connector must be authorized with an account that can create projects in
+the team; a read-only or restricted token can list projects but not create
+them. Once that is in place, the projects, Blob store, environment variables
+and deployments can all be driven from the session.

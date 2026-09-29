@@ -158,6 +158,18 @@ converted, `429` rate limited.
 
 Vite inlines these at build time; the UI Dockerfile accepts them as `--build-arg`s.
 
+## Demo environment (Vercel)
+
+Besides the AWS production setup, the repository can run as a sandbox on
+Vercel: the API as a serverless function with Vercel Blob storage
+(`fragments-backend/api/index.js`, `vercel.json`) and the UI as a static site.
+The demo uses the test users above with HTTP Basic Auth and is not meant to
+hold real data.
+
+`.github/workflows/deploy-vercel.yml` deploys both with a single `VERCEL_TOKEN`
+secret; the dashboard alternative is described in
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#demo-environment-on-vercel).
+
 ## Deployment
 
 - **CI** (`.github/workflows/ci.yml`) runs on every push and pull request to
