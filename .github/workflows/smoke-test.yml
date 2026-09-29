@@ -1,0 +1,46 @@
+name: smoke-test
+
+# Runs the Hurl integration suite against a deployed Fragments API.
+# Manual trigger; defaults to the Vercel demo environment.
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: Base URL of a running Fragments API (no trailing slash)
+        required: true
+        default: https://fragments-api-kishan-dewasis-projects.vercel.app
+
+permissions:
+  contents: read
+
+env:
+  HURL_VERSION: 6.1.1
+
+jobs:
+  hurl:
+    name: Hurl suite against ${{ inputs.api_url }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fragments-backend
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Hurl
+        run: |
+          curl -sSL --fail -o /tmp/hurl.tar.gz \
+            "https://github.com/Orange-OpenSource/hurl/releases/download/${HURL_VERSION}/hurl-${HURL_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          tar -xzf /tmp/hurl.tar.gz -C /tmp
+          sudo install -m 0755 "/tmp/hurl-${HURL_VERSION}-x86_64-unknown-linux-gnu/bin/hurl" /usr/local/bin/hurl
+          hurl --version
+
+      - name: Health check
+        run: curl --fail --silent --show-error "${{ inputs.api_url }}/health"
+
+      - name: Run the integration suite
+        run: |
+          hurl --test \
+            --variables-file tests/integration/vars.env \
+            --variable "host=${{ inputs.api_url }}" \
+            --glob "tests/integration/**/*.hurl"
