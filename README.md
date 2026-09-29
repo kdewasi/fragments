@@ -1,289 +1,178 @@
-# Fragments — Data Fragment Archive & Conversion Engine
+# Fragments
 
-A full-stack cloud-native microservice for creating, storing, converting, and managing data fragments (text, images, JSON, YAML). Built with Node.js, React, TypeScript, and deployed on AWS.
-
-## Architecture
+A cloud-native microservice for storing, retrieving and converting small pieces of
+data ("fragments"): plain text, Markdown, HTML, CSV, JSON, YAML and images.
+It has a Node.js/Express API backed by Amazon S3 + DynamoDB, a React PWA front
+end, and GitHub Actions pipelines that test everything and deploy the API to
+Amazon ECS.
 
 ```
 fragments/
-├── fragments-backend/     # Express.js REST API (Node.js)
-├── fragments-ui-next/     # React + TypeScript + Vite frontend (NEXUS UI)
-├── fragments-ui/          # Legacy vanilla JS frontend
-└── README_Assignment3.md  # Assignment checklist
+├── fragments-backend/   Express 5 REST API (Node 24), Jest + Hurl tests, Dockerfile, Compose stack
+├── fragments-ui/        React 19 + TypeScript + Vite PWA, Vitest tests, nginx Dockerfile
+├── docs/DEPLOYMENT.md   AWS + GitHub setup for the CD pipeline
+├── SECURITY.md          Security model and the credential-rotation notice
+└── .github/             CI (lint, tests, audit, integration) and CD (ECR + ECS) workflows
 ```
 
-### System Diagram
+## How it fits together
 
 ```
-┌─────────────────┐       ┌─────────────────────────────────┐
-│  fragments-ui   │       │       fragments-backend          │
-│  React + Vite   │──────>│       Express.js API             │
-│  Port 1234      │       │       Port 8080                  │
-└─────────────────┘       │                                   │
-                          │  ┌───────────┐  ┌──────────────┐ │
-                          │  │ Amazon S3  │  │ DynamoDB     │ │
-                          │  │ (data)     │  │ (metadata)   │ │
-                          │  └───────────┘  └──────────────┘ │
-                          │                                   │
-                          │  Auth: Cognito (prod) / Basic (dev)│
-                          └─────────────────────────────────┘
+ Browser (fragments-ui)                       fragments-backend (ECS Fargate, port 8080)
+ ┌──────────────────────┐   Bearer ID token   ┌──────────────────────────────────────────┐
+ │ React PWA            │ ──────────────────▶ │ helmet · CORS allow-list · rate limit     │
+ │ Cognito Hosted UI    │                     │ Passport: Cognito JWT (prod) / Basic (dev)│
+ │ IndexedDB offline    │ ◀────────────────── │ /v1/fragments CRUD + .ext conversions     │
+ └──────────────────────┘        JSON         │ sharp · markdown-it · js-yaml             │
+                                              └───────────┬─────────────────┬────────────┘
+                                                          ▼                 ▼
+                                                 DynamoDB (metadata)   S3 (fragment bytes)
 ```
 
-## Features
+- Users are identified by a SHA-256 hash of their email; the email itself is never stored.
+- Every fragment is scoped to its owner. Other users get a 404, not a 403.
+- Uploaded data is validated against its declared type (JSON/YAML parse, image
+  format sniffing) before it is stored, so conversions never operate on garbage.
 
-### Backend API
-- **Full CRUD** — Create, Read, Update, Delete fragments via REST API
-- **11 supported types** — `text/plain`, `text/markdown`, `text/html`, `text/csv`, `application/json`, `application/yaml`, `image/png`, `image/jpeg`, `image/webp`, `image/gif`, `image/avif`
-- **Format conversion** — Convert between compatible types (Markdown to HTML, JSON to YAML, PNG to JPEG, etc.)
-- **Image processing** — Format conversion via [Sharp](https://sharp.pixelplumbing.com/)
-- **Dual auth** — AWS Cognito (production) + HTTP Basic Auth (development)
-- **Pluggable storage** — In-memory (dev), AWS S3 + DynamoDB (production)
-- **Structured logging** — Pino with request IDs
-- **Graceful shutdown** — Clean process termination handling
+## Quick start (local development)
 
-### Frontend (NEXUS UI)
-- **React 19 + TypeScript** — Fully typed, modern React with hooks
-- **NEXUS design system** — Custom sci-fi dark theme with glassmorphism, neon mint accents, animated grid backgrounds
-- **Full CRUD UI** — Create, view, edit, delete fragments from the browser
-- **Image upload** — Drag-and-drop file upload with preview
-- **Format conversion** — Visual converter with inline preview and download
-- **Fragment inspector** — Split-panel detail view with metadata grid
-- **Live stats** — Header shows fragment count, total size, types in use
-- **PWA / Offline** — Service Worker + IndexedDB caching for offline access
-- **Dual auth** — Cognito OAuth redirect (production) + Basic Auth form (development)
-
-### Infrastructure
-- **Docker** — Multi-stage Dockerfiles for both backend and frontend
-- **Docker Compose** — Full local stack (API + DynamoDB Local + LocalStack S3)
-- **CI** — GitHub Actions: lint, unit tests, integration tests (Hurl), Docker Hub push
-- **CD** — GitHub Actions: ECR push + ECS deploy on git tags
-- **AWS** — S3, DynamoDB, ECS, ECR, Cognito, CloudWatch
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **Backend** | Node.js, Express 4, Passport |
-| **Frontend** | React 19, TypeScript 6, Vite 8 |
-| **Auth** | AWS Cognito (OAuth/OIDC), HTTP Basic Auth |
-| **Storage** | Amazon S3 (data), DynamoDB (metadata) |
-| **Images** | Sharp (format conversion) |
-| **Testing** | Jest (unit, 80+ tests), Hurl (integration, 10 test suites) |
-| **CI/CD** | GitHub Actions, Docker Hub, Amazon ECR/ECS |
-| **Fonts** | Outfit, Manrope, JetBrains Mono |
-| **Design** | Glassmorphism, CSS Grid, CSS animations |
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm 9+
-- Docker & Docker Compose (optional, for AWS-backed storage)
-
-### Quick Start (Development)
+Requirements: Node.js 24 (see `.nvmrc`), npm 10+. Docker is optional.
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/kdewasi/fragments.git
-cd fragments
-
-# 2. Start the backend (in-memory storage, Basic Auth)
+# API with in-memory storage and HTTP Basic Auth
 cd fragments-backend
 npm install
-npm run dev
+npm run dev            # http://localhost:8080
 
-# 3. Start the frontend (in a new terminal)
-cd fragments-ui-next
+# UI in a second terminal
+cd fragments-ui
 npm install
-npm run dev
+npm run dev            # http://localhost:1234
 ```
 
-- **Backend**: http://localhost:8080
-- **Frontend**: http://localhost:1234
-- **Health check**: http://localhost:8080/health
+Sign in with one of the test-only users from `fragments-backend/tests/.htpasswd`:
 
-### Test Credentials (Basic Auth)
+| User                      | Password          |
+| ------------------------- | ----------------- |
+| `test-user@example.com`   | `test-password-1` |
+| `test-user-2@example.com` | `test-password-2` |
 
-```
-Email:    test123@gmail.com
-Password: **********
-```
+These users exist only for local development and automated tests. The
+production image contains no `.htpasswd` and refuses to start with Basic Auth
+(see [SECURITY.md](SECURITY.md)).
 
-### Running with Docker Compose (AWS-backed storage)
+### Full local stack (S3 + DynamoDB emulated)
 
 ```bash
 cd fragments-backend
-docker compose up -d
-```
-
-This starts:
-- `fragments` API server on port 8080
-- `dynamodb-local` on port 8000
-- `localstack` (S3) on port 4566
-
-## API Reference
-
-### Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check |
-| `GET` | `/v1/fragments` | List user's fragments |
-| `POST` | `/v1/fragments` | Create a new fragment |
-| `GET` | `/v1/fragments/:id` | Get fragment data |
-| `GET` | `/v1/fragments/:id/info` | Get fragment metadata |
-| `PUT` | `/v1/fragments/:id` | Update fragment data |
-| `DELETE` | `/v1/fragments/:id` | Delete a fragment |
-| `GET` | `/v1/fragments/:id.ext` | Get converted fragment |
-
-### Conversion Matrix
-
-| Source Type | Convertible To |
-|-------------|---------------|
-| `text/markdown` | HTML, Plain Text |
-| `text/html` | Plain Text |
-| `text/csv` | Plain Text, JSON |
-| `application/json` | YAML, Plain Text |
-| `application/yaml` | Plain Text |
-| `image/*` | PNG, JPEG, WebP, GIF, AVIF |
-
-### Example: Create a Fragment
-
-```bash
-curl -X POST http://localhost:8080/v1/fragments \
-  -H "Authorization: Basic $(echo -n 'user@example.com:password' | base64)" \
-  -H "Content-Type: text/markdown" \
-  -d "# Hello World"
-```
-
-### Example: Convert Fragment
-
-```bash
-curl http://localhost:8080/v1/fragments/<id>.html \
-  -H "Authorization: Basic <token>"
+docker compose up -d --build       # API + DynamoDB Local + LocalStack S3
+./scripts/local-aws-setup.sh       # creates the bucket and table (needs the AWS CLI)
+npm run test:integration           # Hurl tests against http://localhost:8080
+docker compose down -v
 ```
 
 ## Testing
 
-### Unit Tests
+| What                    | Command (in the package directory)           |
+| ----------------------- | -------------------------------------------- |
+| Backend lint + format   | `npm run lint && npm run format:check`       |
+| Backend unit tests      | `npm test` (coverage: `npm run coverage`)    |
+| Backend integration     | `npm run test:integration` (needs [Hurl](https://hurl.dev) and a running API) |
+| Frontend lint + types   | `npm run lint && npm run typecheck`          |
+| Frontend unit tests     | `npm test`                                   |
+| Dependency audit        | `npm run audit:prod` (both packages)         |
+
+The unit suite runs against the in-memory store with the test `.htpasswd`; the
+AWS storage layer is covered with mocked SDK clients. Coverage thresholds are
+enforced in `jest.config.js`.
+
+## API
+
+All `/v1` routes require authentication. Responses are JSON envelopes:
+`{ "status": "ok", ... }` or `{ "status": "error", "error": { "code", "message" } }`.
+
+| Method   | Route                        | Description                                           |
+| -------- | ---------------------------- | ----------------------------------------------------- |
+| `GET`    | `/`                          | Service metadata (unauthenticated)                    |
+| `GET`    | `/health`                    | Health check for load balancers (unauthenticated)     |
+| `GET`    | `/v1/fragments[?expand=1]`   | The user's fragment ids, or full metadata with expand |
+| `POST`   | `/v1/fragments`              | Create a fragment from the raw request body           |
+| `GET`    | `/v1/fragments/:id`          | Fragment data with its stored `Content-Type`          |
+| `GET`    | `/v1/fragments/:id/info`     | Fragment metadata                                     |
+| `GET`    | `/v1/fragments/:id.:ext`     | Fragment data converted to the type for `.ext`        |
+| `PUT`    | `/v1/fragments/:id`          | Replace the data (same type only)                     |
+| `DELETE` | `/v1/fragments/:id`          | Delete the fragment                                   |
+
+Supported types: `text/plain`, `text/markdown`, `text/html`, `text/csv`,
+`application/json`, `application/yaml`, `image/png`, `image/jpeg`,
+`image/webp`, `image/gif`, `image/avif`. Bodies are limited to `MAX_FRAGMENT_SIZE` (5 MB by default).
+
+| Stored type        | Convertible to (`.ext`)                          |
+| ------------------ | ------------------------------------------------ |
+| `text/markdown`    | `.html`, `.txt`, `.md`                           |
+| `text/html`        | `.txt`, `.html`                                  |
+| `text/csv`         | `.json`, `.txt`, `.csv`                          |
+| `application/json` | `.yaml` / `.yml`, `.txt`, `.json`                |
+| `application/yaml` | `.txt`, `.yaml`                                  |
+| `image/*`          | `.png`, `.jpg`, `.webp`, `.gif`, `.avif`         |
 
 ```bash
-cd fragments-backend
-npm test              # Run all 80+ tests
-npm run coverage      # Run with coverage report (86%+ statements)
+AUTH="Authorization: Basic $(printf 'test-user@example.com:test-password-1' | base64)"
+curl -s -X POST http://localhost:8080/v1/fragments -H "$AUTH" -H 'Content-Type: text/markdown' -d '# Hello'
+curl -s http://localhost:8080/v1/fragments/<id>.html -H "$AUTH"
 ```
 
-### Integration Tests
+Error codes: `400` invalid body / type mismatch / unknown extension, `401`
+unauthenticated, `404` unknown fragment (or another user's), `413` body too
+large, `415` unsupported type or conversion, `422` stored data could not be
+converted, `429` rate limited.
 
-```bash
-cd fragments-backend
-docker compose up -d          # Start local AWS services
-npm run test:integration      # Run Hurl integration tests
-```
+## Configuration
+
+### Backend (`fragments-backend/.env.example`)
+
+| Variable                                          | Purpose                                                    | Default              |
+| ------------------------------------------------- | ---------------------------------------------------------- | -------------------- |
+| `PORT`                                            | Listen port                                                | `8080`               |
+| `NODE_ENV`                                        | `production` enforces Cognito auth                         | `development`        |
+| `LOG_LEVEL`, `LOG_PRETTY`                         | Pino level; pretty output for humans                       | `info` / off in prod |
+| `API_URL`                                         | Public URL used in `Location` headers                      | request host         |
+| `CORS_ORIGINS`                                    | Comma-separated allowed browser origins                    | any                  |
+| `TRUST_PROXY`                                     | Express trust-proxy value (`1` behind an ALB)              | off                  |
+| `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS`          | Requests per window per client                             | `300` / `60000`      |
+| `MAX_FRAGMENT_SIZE`                               | Largest accepted body                                      | `5mb`                |
+| `HTPASSWD_FILE`                                   | Basic Auth users (development only)                        | none                 |
+| `AWS_COGNITO_POOL_ID`, `AWS_COGNITO_CLIENT_ID`    | Cognito user pool for Bearer ID tokens (production)        | none                 |
+| `AWS_REGION`                                      | Set to use S3 + DynamoDB; empty means in-memory storage    | none                 |
+| `AWS_S3_BUCKET_NAME`, `AWS_DYNAMODB_TABLE_NAME`   | Storage names                                              | `fragments`          |
+| `AWS_S3_ENDPOINT_URL`, `AWS_DYNAMODB_ENDPOINT_URL`| Alternate endpoints (LocalStack, DynamoDB Local)           | AWS                  |
+
+### Frontend (`fragments-ui/.env.example`)
+
+| Variable                                          | Purpose                                            |
+| ------------------------------------------------- | -------------------------------------------------- |
+| `VITE_API_URL`                                    | Backend base URL                                   |
+| `VITE_AUTH_MODE`                                  | `basic` (development) or `cognito` (production)    |
+| `VITE_COGNITO_AUTHORITY`, `VITE_COGNITO_CLIENT_ID`| Required in `cognito` mode                         |
+| `VITE_COGNITO_REDIRECT_URI`                       | Defaults to `<origin>/callback`                    |
+
+Vite inlines these at build time; the UI Dockerfile accepts them as `--build-arg`s.
 
 ## Deployment
 
-### Docker Build
+- **CI** (`.github/workflows/ci.yml`) runs on every push and pull request to
+  `main`: backend lint/format/unit tests/audit, frontend lint/types/tests/build/audit,
+  Dockerfile lint, and the Hurl integration suite against the Compose stack.
+  Pushes to `main` also publish the backend image to Docker Hub.
+- **CD** (`.github/workflows/cd.yml`) runs on `v*` tags: builds the backend
+  image, pushes it to Amazon ECR and deploys it to the ECS service using
+  `fragments-backend/deploy/ecs-task-definition.json`, authenticating to AWS
+  through GitHub OIDC.
 
-```bash
-# Backend
-cd fragments-backend
-docker build -t fragments-backend .
-
-# Frontend
-cd fragments-ui-next
-docker build -t fragments-ui .
-```
-
-### AWS Deployment
-
-The project deploys via GitHub Actions:
-
-1. **CI** (on push to `main`): Lint, unit tests, integration tests, Docker Hub push
-2. **CD** (on git tags `v*`): Build + push to ECR, deploy to ECS
-
-See `.github/workflows/ci.yml` and `.github/workflows/cd.yml`.
-
-### Environment Variables
-
-#### Backend
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | `8080` |
-| `LOG_LEVEL` | Pino log level | `debug` |
-| `HTPASSWD_FILE` | Path to .htpasswd for Basic Auth | `tests/.htpasswd` |
-| `AWS_REGION` | Enables AWS storage when set | — |
-| `AWS_S3_BUCKET_NAME` | S3 bucket for fragment data | `fragments` |
-| `AWS_DYNAMODB_TABLE_NAME` | DynamoDB table for metadata | `fragments` |
-| `AWS_COGNITO_POOL_ID` | Cognito User Pool ID | — |
-| `AWS_COGNITO_CLIENT_ID` | Cognito App Client ID | — |
-
-#### Frontend
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `VITE_API_URL` | Backend API URL | `http://localhost:8080` |
-| `VITE_AUTH_MODE` | `basic` or `cognito` | `basic` |
-| `VITE_COGNITO_AUTHORITY` | Cognito authority URL | — |
-| `VITE_COGNITO_CLIENT_ID` | Cognito client ID | — |
-
-## Project Structure
-
-```
-fragments-backend/
-├── src/
-│   ├── index.js              # Server bootstrap + graceful shutdown
-│   ├── app.js                # Express app + middleware
-│   ├── auth/                 # Cognito + Basic Auth strategies
-│   ├── model/
-│   │   ├── fragment.js       # Fragment class + conversion logic
-│   │   └── data/             # Pluggable storage (memory / AWS)
-│   └── routes/api/           # REST API route handlers
-├── tests/
-│   ├── unit/                 # Jest unit tests (13 suites, 80+ tests)
-│   └── integration/          # Hurl integration tests (10 suites)
-├── Dockerfile                # Multi-stage Docker build
-├── docker-compose.yml        # Full local stack
-└── .github/workflows/        # CI/CD pipelines
-
-fragments-ui-next/
-├── src/
-│   ├── App.tsx               # Root component + auth routing
-│   ├── config.ts             # Environment config (API URL, auth mode)
-│   ├── components/
-│   │   ├── LoginForm/        # Auth screen (Basic + Cognito)
-│   │   └── FragmentDashboard/# Main dashboard (CRUD + convert)
-│   ├── hooks/
-│   │   ├── useAuth.ts        # Auth state (dual mode)
-│   │   └── useFragments.ts   # Fragment CRUD + offline cache
-│   ├── services/
-│   │   ├── api.client.ts     # Typed API client
-│   │   ├── auth.service.ts   # Basic Auth
-│   │   ├── cognito.service.ts# Cognito OAuth
-│   │   └── offline.service.ts# IndexedDB + Service Worker
-│   └── types/                # TypeScript interfaces
-├── public/
-│   ├── sw.js                 # Service Worker
-│   └── manifest.json         # PWA manifest
-├── Dockerfile                # Multi-stage Docker build
-└── nginx.conf                # Nginx SPA routing
-```
-
-## Screenshots
-
-The NEXUS UI features a sci-fi data terminal aesthetic:
-
-- **Login**: Deep space background with floating ambient orbs, glassmorphism card, pulsing status indicators
-- **Dashboard**: Dense header with live stats, animated grid background, split-panel layout with fragment inspector
-- **Fragment table**: Colored type tags, monospaced IDs, inline actions
-- **Inspector**: Metadata grid, content viewer, format converter, danger zone
+The one-time AWS and GitHub setup (ECR, S3, DynamoDB, Cognito, IAM roles,
+repository variables) is described in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## License
 
-This project was built for **CCP555 — Cloud Computing for Programmers** at Seneca Polytechnic.
-
-## Author
-
-**Kishan Dewasi** — [@kdewasi](https://github.com/kdewasi)
+Personal project by [Kishan Dewasi](https://github.com/kdewasi); originally built for
+CCP555 (Cloud Computing for Programmers) at Seneca Polytechnic. All rights reserved.
