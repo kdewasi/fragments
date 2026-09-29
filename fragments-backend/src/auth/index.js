@@ -14,6 +14,14 @@ const logger = require('../logger');
 const { cognitoPoolId, cognitoClientId, htpasswdFile } = config.auth;
 const cognitoConfigured = Boolean(cognitoPoolId && cognitoClientId);
 
+// Relative HTPASSWD_FILE paths are resolved against this package, not the
+// process working directory, so they work in Docker (/app), in a monorepo
+// checkout and in serverless bundles that keep the fragments-backend/ prefix.
+const PACKAGE_ROOT = path.resolve(__dirname, '..', '..');
+function resolveHtpasswd(file) {
+  return path.isAbsolute(file) ? file : path.resolve(PACKAGE_ROOT, file);
+}
+
 if (cognitoConfigured && htpasswdFile) {
   throw new Error(
     'env contains configuration for both AWS Cognito and HTTP Basic Auth. Only one is allowed.'
@@ -29,9 +37,9 @@ if (cognitoConfigured) {
         'Set AWS_COGNITO_POOL_ID and AWS_COGNITO_CLIENT_ID instead.'
     );
   }
-  module.exports = require('./basic-auth')(path.resolve(htpasswdFile));
+  module.exports = require('./basic-auth')(resolveHtpasswd(htpasswdFile));
 } else if (!config.isProduction) {
-  const fallback = path.resolve(__dirname, '..', '..', 'tests', '.htpasswd');
+  const fallback = path.join(PACKAGE_ROOT, 'tests', '.htpasswd');
   if (!fs.existsSync(fallback)) {
     throw new Error(
       'No authentication configured: set HTPASSWD_FILE or the AWS_COGNITO_* variables'
